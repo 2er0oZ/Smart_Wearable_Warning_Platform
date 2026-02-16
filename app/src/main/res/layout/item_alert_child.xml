@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    app:cardCornerRadius="6dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_message_child"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="预警类型"
+                android:textSize="14sp"
+                android:textColor="#333"/>
+
+            <TextView
+                android:id="@+id/tv_badge_child"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="!"
+                android:background="#FF4444"
+                android:textColor="#FFF"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:textSize="12sp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_details_child"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:id="@+id/tv_bpm_child"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="异常心率: -- bpm"
+                android:textSize="14sp"
+                android:textColor="#000"
+                android:layout_marginBottom="6dp"/>
+
+            <TextView
+                android:id="@+id/tv_timestamp_child"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="时间: --"
+                android:textSize="12sp"
+                android:textColor="#666"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
