@@ -271,6 +271,38 @@ public class DataManager {
         }
     }
 
+    /**
+     * 根据已保存的所有学生心率数据，使用当前阈值重建全部预警列表。
+     * 该方法会覆盖原有的预警数据，适用于管理员更新阈值后重新计算所有历史预警。
+     */
+    public void rebuildAlertsFromSavedData() {
+        List<HealthAlert> newAlerts = new ArrayList<>();
+        int minThreshold = getMinThreshold();
+        int maxThreshold = getMaxThreshold();
+
+        List<User> users = getAllUsers();
+        for (User u : users) {
+            String username = u.getUsername();
+            List<HeartRateEntry> data = getHeartRateData(username);
+            for (HeartRateEntry entry : data) {
+                int bpm = entry.getBpm();
+                String timestamp = entry.getTimestamp();
+                if (bpm < minThreshold || bpm > maxThreshold) {
+                    HealthAlert alert = new HealthAlert();
+                    alert.setStudentName(username);
+                    alert.setTimestamp(timestamp);
+                    alert.setBpm(bpm);
+                    String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
+                    alert.setMessage(type + ": " + bpm + " bpm (阈值: " + (bpm < minThreshold ? minThreshold : maxThreshold) + ")");
+                    newAlerts.add(alert);
+                }
+            }
+        }
+
+        // 存储新的预警列表（覆盖原有）
+        saveAlerts(newAlerts);
+    }
+
 
 
 

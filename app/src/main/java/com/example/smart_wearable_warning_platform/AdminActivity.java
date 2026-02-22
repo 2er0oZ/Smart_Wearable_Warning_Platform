@@ -127,7 +127,8 @@ public class AdminActivity extends AppCompatActivity {
             dataManager.setMinThreshold(min);
             dataManager.setMaxThreshold(max);
             Toast.makeText(this, "阈值已更新为: " + min + " - " + max, Toast.LENGTH_SHORT).show();
-            // 保存后刷新预警列表，确保管理员能立即看到基于新阈值的预警变化
+            // 保存后根据新阈值重建预警列表，确保管理员能立即看到基于新阈值的预警变化
+            dataManager.rebuildAlertsFromSavedData();
             loadAlerts();
 
         } catch (NumberFormatException e) {
