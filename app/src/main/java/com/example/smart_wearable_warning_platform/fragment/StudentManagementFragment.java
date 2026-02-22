@@ -3,7 +3,9 @@ package com.example.smart_wearable_warning_platform.fragment;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,24 +24,58 @@ import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class StudentManagementFragment extends Fragment {
 
     private RecyclerView recyclerStudents;
+    private EditText etSearch;
+    private android.widget.Button btnSearch;
     private DataManager dataManager;
-    private List<User> users;
+    private List<User> allUsers; // all users (students filtered)
+    private List<User> users; // currently shown (filtered by search)
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_student_management, container, false);
         recyclerStudents = root.findViewById(R.id.recycler_students);
+        etSearch = root.findViewById(R.id.et_search_students);
+        btnSearch = root.findViewById(R.id.btn_search_students);
         dataManager = new DataManager(requireContext());
 
-        users = dataManager.getAllUsers();
+        // 读取所有用户，筛选出学生
+        List<User> all = dataManager.getAllUsers();
+        allUsers = new ArrayList<>();
+        for (User u : all) {
+            if ("Student".equals(u.getRole())) {
+                allUsers.add(u);
+            }
+        }
+
+        // 初始显示全部学生
+        users = new ArrayList<>(allUsers);
+
         recyclerStudents.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerStudents.setAdapter(new StudentAdapter());
+
+        // 搜索框实时过滤
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterUsers(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // 点击搜索按钮也触发一次过滤（并可用于提交搜索）
+        btnSearch.setOnClickListener(v -> filterUsers(etSearch.getText().toString()));
         return root;
     }
 
@@ -118,5 +154,25 @@ public class StudentManagementFragment extends Fragment {
 
         builder.setNegativeButton("取消", (dialog, which) -> dialog.dismiss());
         builder.show();
+    }
+
+    private void filterUsers(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase();
+        users.clear();
+        if (q.isEmpty()) {
+            users.addAll(allUsers);
+        } else {
+            for (User u : allUsers) {
+                if (u.getUsername() != null && u.getUsername().toLowerCase().contains(q)) {
+                    users.add(u);
+                }
+            }
+        }
+        // 通知 RecyclerView 更新
+        requireActivity().runOnUiThread(() -> {
+            if (recyclerStudents.getAdapter() != null) {
+                recyclerStudents.getAdapter().notifyDataSetChanged();
+            }
+        });
     }
 }
