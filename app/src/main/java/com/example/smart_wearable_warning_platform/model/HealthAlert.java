@@ -16,6 +16,7 @@ public class HealthAlert {
         this.timestamp = timestamp;
         this.message = message;
         this.studentName = studentName;
+        // bpm 在创建时没有传入，默认为0，需要在建立后设置。
     }
 
     // ... Getters 和 Setters (保持之前的) ...

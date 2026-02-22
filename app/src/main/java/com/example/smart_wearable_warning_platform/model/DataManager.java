@@ -109,7 +109,25 @@ public class DataManager {
         String json = prefs.getString(KEY_ALERTS, null);
         Type type = new TypeToken<ArrayList<HealthAlert>>(){}.getType();
         if (json == null) return new ArrayList<>();
-        return gson.fromJson(json, type);
+        List<HealthAlert> list = gson.fromJson(json, type);
+        // 回填：如果之前的记录没有 bpm 字段逻辑，尝试从 message 中解析
+        for (HealthAlert alert : list) {
+            if (alert.getBpm() == 0) {
+                String msg = alert.getMessage();
+                if (msg != null) {
+                    // 提取第一个数字
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)").matcher(msg);
+                    if (m.find()) {
+                        try {
+                            int parsed = Integer.parseInt(m.group(1));
+                            alert.setBpm(parsed);
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        }
+        return list;
     }
 
     private void saveAlerts(List<HealthAlert> alerts) {
@@ -162,11 +180,14 @@ public class DataManager {
                 HealthAlert alert = new HealthAlert(timestamp,
                         "心率过低预警: " + bpm + " bpm (阈值: " + min + ")",
                         currentUser.getUsername());
+                // 记录触发预警时的心率值，避免默认0导致展示错误
+                alert.setBpm(bpm);
                 addAlert(alert);
             } else if (bpm > max) {
                 HealthAlert alert = new HealthAlert(timestamp,
                         "心率过高预警: " + bpm + " bpm (阈值: " + max + ")",
                         currentUser.getUsername());
+                alert.setBpm(bpm);
                 addAlert(alert);
             }
         }
