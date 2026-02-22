@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.adapter.AlertAdapter;
+import com.example.smart_wearable_warning_platform.adapter.GroupedAlertAdapter;
 import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.HealthAlert;
 
@@ -28,8 +29,11 @@ public class AlertsNotificationFragment extends Fragment {
     private AlertAdapter adapter;
 
     private List<HealthAlert> allAlerts = new ArrayList<>();
-    private List<HealthAlert> shownAlerts = new ArrayList<>();
-    private int pageSize = 10;
+    // 分组数据
+    private List<GroupedAlertAdapter.Group> allGroups = new ArrayList<>();
+    private List<GroupedAlertAdapter.Group> shownGroups = new ArrayList<>();
+    private GroupedAlertAdapter groupedAdapter;
+    private int pageSize = 10; // 每页显示的分组数量
 
     @Nullable
     @Override
@@ -50,19 +54,37 @@ public class AlertsNotificationFragment extends Fragment {
 
     private void loadAllAlerts() {
         allAlerts = dataManager.getAllAlerts();
-        shownAlerts.clear();
-        int end = Math.min(pageSize, allAlerts.size());
-        for (int i = 0; i < end; i++) shownAlerts.add(allAlerts.get(i));
-        adapter = new AlertAdapter(shownAlerts);
-        recyclerAlerts.setAdapter(adapter);
-        btnLoadMore.setVisibility(allAlerts.size() > shownAlerts.size() ? View.VISIBLE : View.GONE);
+        // 聚合为按学生分组
+        java.util.LinkedHashMap<String, GroupedAlertAdapter.Group> map = new java.util.LinkedHashMap<>();
+        for (HealthAlert a : allAlerts) {
+            String name = a.getStudentName();
+            if (name == null) name = "未知";
+            GroupedAlertAdapter.Group g = map.get(name);
+            if (g == null) {
+                g = new GroupedAlertAdapter.Group();
+                g.studentName = name;
+                map.put(name, g);
+            }
+            g.alerts.add(a);
+        }
+        allGroups.clear();
+        allGroups.addAll(map.values());
+
+        // 初始化显示第一页分组
+        shownGroups.clear();
+        int end = Math.min(pageSize, allGroups.size());
+        for (int i = 0; i < end; i++) shownGroups.add(allGroups.get(i));
+
+        groupedAdapter = new GroupedAlertAdapter(shownGroups);
+        recyclerAlerts.setAdapter(groupedAdapter);
+        btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
     }
 
     private void loadMore() {
-        int current = shownAlerts.size();
-        int end = Math.min(current + pageSize, allAlerts.size());
-        for (int i = current; i < end; i++) shownAlerts.add(allAlerts.get(i));
-        adapter.notifyDataSetChanged();
-        btnLoadMore.setVisibility(allAlerts.size() > shownAlerts.size() ? View.VISIBLE : View.GONE);
+        int current = shownGroups.size();
+        int end = Math.min(current + pageSize, allGroups.size());
+        for (int i = current; i < end; i++) shownGroups.add(allGroups.get(i));
+        groupedAdapter.notifyDataSetChanged();
+        btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
     }
 }
