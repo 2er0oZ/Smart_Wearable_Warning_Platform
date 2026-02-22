@@ -12,7 +12,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DataManager {
     private static final String PREFS_NAME = "HealthAppPrefs";
@@ -20,6 +22,7 @@ public class DataManager {
     private static final String KEY_ALERTS = "alerts_list";
     private static final String KEY_MIN_HR = "min_hr_threshold"; // 默认50
     private static final String KEY_MAX_HR = "max_hr_threshold"; // 默认100
+    private static final String KEY_STUDENT_THRESHOLDS = "student_thresholds"; // 存储每个学生的阈值映射
     private static final String KEY_CURRENT_USER = "current_user";
 
 
@@ -69,7 +72,7 @@ public class DataManager {
     }
 
 
-    private List<User> getAllUsers() {
+    public List<User> getAllUsers() {
         String json = prefs.getString(KEY_USERS, null);
         Type type = new TypeToken<ArrayList<User>>(){}.getType();
         if (json == null) return new ArrayList<>();
@@ -135,6 +138,40 @@ public class DataManager {
         prefs.edit().putString(KEY_ALERTS, json).apply();
     }
 
+    // --- 每个学生的阈值管理 (以 username 为 key 存储) ---
+    private Map<String, StudentThreshold> getStudentThresholdsMap() {
+        String json = prefs.getString(KEY_STUDENT_THRESHOLDS, null);
+        if (json == null) return new HashMap<>();
+        Type type = new TypeToken<HashMap<String, StudentThreshold>>(){}.getType();
+        Map<String, StudentThreshold> map = gson.fromJson(json, type);
+        if (map == null) return new HashMap<>();
+        return map;
+    }
+
+    private void saveStudentThresholdsMap(Map<String, StudentThreshold> map) {
+        String json = gson.toJson(map);
+        prefs.edit().putString(KEY_STUDENT_THRESHOLDS, json).apply();
+    }
+
+    public void setStudentThreshold(String username, int min, int max) {
+        Map<String, StudentThreshold> map = getStudentThresholdsMap();
+        StudentThreshold th = new StudentThreshold(min, max);
+        map.put(username, th);
+        saveStudentThresholdsMap(map);
+    }
+
+    /**
+     * 返回指定用户的阈值数组：{min, max}. 如果该用户没有单独设置，返回全局阈值。
+     */
+    public int[] getThresholdForUser(String username) {
+        Map<String, StudentThreshold> map = getStudentThresholdsMap();
+        if (map.containsKey(username)) {
+            StudentThreshold th = map.get(username);
+            return new int[]{th.getMin(), th.getMax()};
+        }
+        return new int[]{getMinThreshold(), getMaxThreshold()};
+    }
+
     // --- CSV 数据处理 (核心逻辑) ---
 
     public List<HeartRateEntry> parseCSV(InputStream inputStream) throws IOException {
@@ -173,8 +210,9 @@ public class DataManager {
     private void checkThresholdAndAlert(int bpm, String timestamp) {
         User currentUser = getCurrentUser();
         if (currentUser != null && "Student".equals(currentUser.getRole())) {
-            int min = getMinThreshold();
-            int max = getMaxThreshold();
+            int[] th = getThresholdForUser(currentUser.getUsername());
+            int min = th[0];
+            int max = th[1];
 
             if (bpm < min) {
                 HealthAlert alert = new HealthAlert(timestamp,
@@ -228,8 +266,10 @@ public class DataManager {
     public void checkAndGenerateAlerts(String username, List<HeartRateEntry> newEntries) {
         // 读取时使用 KEY_ALERTS (常量 "alerts_list")
         List<HealthAlert> allAlerts = getAllAlerts();
-        int minThreshold = getMinThreshold();
-        int maxThreshold = getMaxThreshold();
+        // 对于指定的 username，优先使用该学生自定义阈值
+        int[] thForUser = getThresholdForUser(username);
+        int minThreshold = thForUser[0];
+        int maxThreshold = thForUser[1];
 
         boolean hasNewAlerts = false;
 
@@ -277,23 +317,23 @@ public class DataManager {
      */
     public void rebuildAlertsFromSavedData() {
         List<HealthAlert> newAlerts = new ArrayList<>();
-        int minThreshold = getMinThreshold();
-        int maxThreshold = getMaxThreshold();
-
         List<User> users = getAllUsers();
         for (User u : users) {
             String username = u.getUsername();
+            int[] th = getThresholdForUser(username);
+            int minThresholdForUser = th[0];
+            int maxThresholdForUser = th[1];
             List<HeartRateEntry> data = getHeartRateData(username);
             for (HeartRateEntry entry : data) {
                 int bpm = entry.getBpm();
                 String timestamp = entry.getTimestamp();
-                if (bpm < minThreshold || bpm > maxThreshold) {
+                if (bpm < minThresholdForUser || bpm > maxThresholdForUser) {
                     HealthAlert alert = new HealthAlert();
                     alert.setStudentName(username);
                     alert.setTimestamp(timestamp);
                     alert.setBpm(bpm);
-                    String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
-                    alert.setMessage(type + ": " + bpm + " bpm (阈值: " + (bpm < minThreshold ? minThreshold : maxThreshold) + ")");
+                    String type = (bpm < minThresholdForUser) ? "心率过低" : "心率过高";
+                    alert.setMessage(type + ": " + bpm + " bpm (阈值: " + (bpm < minThresholdForUser ? minThresholdForUser : maxThresholdForUser) + ")");
                     newAlerts.add(alert);
                 }
             }
