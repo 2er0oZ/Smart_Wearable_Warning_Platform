@@ -183,7 +183,7 @@ public class DataManager {
         while ((line = reader.readLine()) != null) {
             if (isFirstLine) {
                 isFirstLine = false;
-                continue; // 跳过标题行: 时间戳,日期时间,心率值
+                continue; // 跳过标题行: 时间戳,日期时间,心率值,步频（可选）
             }
 
             String[] parts = line.split(",");
@@ -191,8 +191,19 @@ public class DataManager {
                 try {
                     String timestamp = parts[1]; // 取日期时间作为X轴
                     int bpm = Integer.parseInt(parts[2].trim());
+                    int stepFreq = 0;
+                    if (parts.length >= 4) {
+                        try {
+                            stepFreq = Integer.parseInt(parts[3].trim());
+                        } catch (NumberFormatException ignored) {
+                            // 如果步频不是数字，保持为0
+                        }
+                    }
+                    if (stepFreq < 0) {
+                        stepFreq = 0; // 步频不允许为负
+                    }
 
-                    HeartRateEntry entry = new HeartRateEntry(timestamp, bpm);
+                    HeartRateEntry entry = new HeartRateEntry(timestamp, bpm, stepFreq);
                     data.add(entry);
 
                     // 实时预警检查逻辑
@@ -302,11 +313,6 @@ public class DataManager {
         }
 
         if (hasNewAlerts) {
-            // --- 修复点 2 ---
-            // 错误写法: prefs.edit().putString("all_alerts", json).apply();
-            // 正确写法: 调用 saveAlerts 方法 (内部使用的是 KEY_ALERTS)，或者手动使用 KEY_ALERTS
-
-            // 建议直接复用已有的方法，避免再次拼写错误
             saveAlerts(allAlerts);
         }
     }

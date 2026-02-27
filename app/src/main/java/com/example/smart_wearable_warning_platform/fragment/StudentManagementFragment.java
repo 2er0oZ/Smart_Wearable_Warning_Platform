@@ -33,8 +33,8 @@ public class StudentManagementFragment extends Fragment {
     private EditText etSearch;
     private android.widget.Button btnSearch;
     private DataManager dataManager;
-    private List<User> allUsers; // all users (students filtered)
-    private List<User> users; // currently shown (filtered by search)
+    private List<User> allUsers; // all users (已筛选学生名单)
+    private List<User> users; // currently shown (根据搜索过滤后的名单)
 
     @Nullable
     @Override

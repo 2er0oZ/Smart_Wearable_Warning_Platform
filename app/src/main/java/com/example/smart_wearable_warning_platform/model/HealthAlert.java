@@ -8,7 +8,6 @@ public class HealthAlert {
 
     // --- 新增：控制是否展开的字段 ---
     private boolean isExpanded = false;
-    // ---
 
     public HealthAlert() {}
 

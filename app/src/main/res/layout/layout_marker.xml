@@ -25,4 +25,13 @@
     android:textSize="14sp"
     android:textStyle="bold"/>
 
+    <TextView
+    android:id="@+id/tv_marker_steps"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="步频: 0"
+    android:textColor="#2196F3"
+    android:textSize="14sp"
+    android:textStyle="bold"/>
+
 </LinearLayout>

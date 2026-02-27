@@ -12,7 +12,7 @@ import java.util.List;
 
 public class CustomMarkerView extends MarkerView {
 
-    private TextView tvTime, tvBpm;
+    private TextView tvTime, tvBpm, tvSteps;
     private List<HeartRateEntry> dataList; // 传入原始数据，用于查找时间
 
     public CustomMarkerView(Context context, int layoutResource, List<HeartRateEntry> dataList) {
@@ -20,6 +20,7 @@ public class CustomMarkerView extends MarkerView {
         this.dataList = dataList;
         tvTime = findViewById(R.id.tv_marker_time);
         tvBpm = findViewById(R.id.tv_marker_bpm);
+        tvSteps = findViewById(R.id.tv_marker_steps);
     }
 
     // 每次点击点的时候，都会调用这个方法
@@ -30,17 +31,25 @@ public class CustomMarkerView extends MarkerView {
         float bpm = e.getY();
 
         // 从数据列表中取出对应的时间字符串
-        String timeStr = "--:--";
+        String timeStr = "--";
         if (index >= 0 && index < dataList.size()) {
             String fullTime = dataList.get(index).getTimestamp();
-            // 截取 HH:mm
-            if (fullTime.length() > 16) {
-                timeStr = fullTime.substring(11, 16);
+            // 显示 yyyy-MM-dd HH:mm
+            if (fullTime.length() >= 16) {
+                timeStr = fullTime.substring(0, 16);
+            } else {
+                timeStr = fullTime;
             }
         }
 
         tvTime.setText("时间: " + timeStr);
         tvBpm.setText("心率: " + (int) bpm);
+        // 步频从原始数据列表取出
+        int stepsVal = 0;
+        if (index >= 0 && index < dataList.size()) {
+            stepsVal = dataList.get(index).getStepFrequency();
+        }
+        tvSteps.setText("步频: " + stepsVal);
 
         super.refreshContent(e, highlight);
     }
