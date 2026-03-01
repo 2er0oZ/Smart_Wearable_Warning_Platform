@@ -153,9 +153,12 @@ public class HeartRateFragment extends Fragment {
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setLabelCount(Math.min(data.size(), 8), true);
+        // 限制最多6个标签并自动调整，过多则旋转防止拥挤
+        xAxis.setLabelCount(Math.min(data.size(), 6), true);
         xAxis.setDrawGridLines(false);
         xAxis.setTextColor(Color.BLACK);
+        xAxis.setAvoidFirstLastClipping(true);
+        xAxis.setLabelRotationAngle(45f);
         xAxis.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {

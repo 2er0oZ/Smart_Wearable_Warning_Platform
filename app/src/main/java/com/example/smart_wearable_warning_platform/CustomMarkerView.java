@@ -28,8 +28,6 @@ public class CustomMarkerView extends MarkerView {
     public void refreshContent(Entry e, Highlight highlight) {
         // e.getX() 是我们在 renderChart 里设置的索引 (0, 1, 2...)
         int index = (int) e.getX();
-        float bpm = e.getY();
-
         // 从数据列表中取出对应的时间字符串
         String timeStr = "--";
         if (index >= 0 && index < dataList.size()) {
@@ -43,7 +41,12 @@ public class CustomMarkerView extends MarkerView {
         }
 
         tvTime.setText("时间: " + timeStr);
-        tvBpm.setText("心率: " + (int) bpm);
+        // 始终从原始数据获取心率，确保点击步频线时也显示正确
+        int bpmVal = 0;
+        if (index >= 0 && index < dataList.size()) {
+            bpmVal = dataList.get(index).getBpm();
+        }
+        tvBpm.setText("心率: " + bpmVal);
         // 步频从原始数据列表取出
         int stepsVal = 0;
         if (index >= 0 && index < dataList.size()) {
