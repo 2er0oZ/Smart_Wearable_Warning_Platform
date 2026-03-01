@@ -56,10 +56,19 @@
             android:padding="12dp">
 
             <TextView
-                android:id="@+id/tv_bpm"
+                android:id="@+id/tv_hr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="心率数值"
+                android:text="心率: -- bpm"
+                android:textSize="14sp"
+                android:textColor="#000"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tv_step"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="步频: --"
                 android:textSize="14sp"
                 android:textColor="#000"
                 android:layout_marginBottom="8dp"/>

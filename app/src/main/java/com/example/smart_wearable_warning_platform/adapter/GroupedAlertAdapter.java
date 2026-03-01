@@ -52,7 +52,14 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
                 View detail = inflater.inflate(R.layout.alert_detail_item, holder.layoutDetails, false);
                 TextView tvMsg = detail.findViewById(R.id.tv_detail_message);
                 TextView tvTime = detail.findViewById(R.id.tv_detail_time);
-                tvMsg.setText(a.getMessage() + ": " + a.getBpm() + " bpm");
+                // 构建显示心率和步频
+                String extra;
+                if (a.isStep()) {
+                    extra = "步频: " + a.getStepFreq();
+                } else {
+                    extra = "心率: " + a.getBpm() + " bpm";
+                }
+                tvMsg.setText(a.getMessage() + " (" + extra + ")");
                 tvTime.setText(a.getTimestamp());
                 holder.layoutDetails.addView(detail);
             }

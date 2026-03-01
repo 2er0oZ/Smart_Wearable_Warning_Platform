@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.User;
+import com.example.smart_wearable_warning_platform.model.StudentThreshold;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,31 +120,49 @@ public class StudentManagementFragment extends Fragment {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(40, 20, 40, 20);
 
-        EditText etMin = new EditText(requireContext());
-        etMin.setInputType(InputType.TYPE_CLASS_NUMBER);
-        etMin.setHint("最低心率");
-        EditText etMax = new EditText(requireContext());
-        etMax.setInputType(InputType.TYPE_CLASS_NUMBER);
-        etMax.setHint("最高心率");
+        EditText etMinHr = new EditText(requireContext());
+        etMinHr.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etMinHr.setHint("最低心率");
+        EditText etMaxHr = new EditText(requireContext());
+        etMaxHr.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etMaxHr.setHint("最高心率");
 
-        int[] th = dataManager.getThresholdForUser(user.getUsername());
-        etMin.setText(String.valueOf(th[0]));
-        etMax.setText(String.valueOf(th[1]));
+        EditText etMinStep = new EditText(requireContext());
+        etMinStep.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etMinStep.setHint("最低步频");
+        EditText etMaxStep = new EditText(requireContext());
+        etMaxStep.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etMaxStep.setHint("最高步频");
 
-        layout.addView(etMin);
-        layout.addView(etMax);
+        // 获取当前阈值对象
+        StudentThreshold th = dataManager.getThresholdForUser(user.getUsername());
+        etMinHr.setText(String.valueOf(th.getMinHr()));
+        etMaxHr.setText(String.valueOf(th.getMaxHr()));
+        etMinStep.setText(String.valueOf(th.getMinStep()));
+        etMaxStep.setText(String.valueOf(th.getMaxStep()));
+
+        layout.addView(etMinHr);
+        layout.addView(etMaxHr);
+        layout.addView(etMinStep);
+        layout.addView(etMaxStep);
 
         builder.setView(layout);
 
         builder.setPositiveButton("保存", (dialog, which) -> {
             try {
-                int min = Integer.parseInt(etMin.getText().toString().trim());
-                int max = Integer.parseInt(etMax.getText().toString().trim());
-                if (min >= max) {
-                    Toast.makeText(requireContext(), "最低必须小于最高", Toast.LENGTH_SHORT).show();
+                int minHr = Integer.parseInt(etMinHr.getText().toString().trim());
+                int maxHr = Integer.parseInt(etMaxHr.getText().toString().trim());
+                int minStep = Integer.parseInt(etMinStep.getText().toString().trim());
+                int maxStep = Integer.parseInt(etMaxStep.getText().toString().trim());
+                if (minHr >= maxHr) {
+                    Toast.makeText(requireContext(), "最低心率必须小于最高心率", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                dataManager.setStudentThreshold(user.getUsername(), min, max);
+                if (minStep >= maxStep) {
+                    Toast.makeText(requireContext(), "最低步频必须小于最高步频", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                dataManager.setStudentThreshold(user.getUsername(), minHr, maxHr, minStep, maxStep);
                 // 保存后建议重建预警以便立即生效
                 dataManager.rebuildAlertsFromSavedData();
                 Toast.makeText(requireContext(), "阈值已保存", Toast.LENGTH_SHORT).show();

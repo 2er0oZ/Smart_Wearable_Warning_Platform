@@ -5,6 +5,10 @@ public class HealthAlert {
     private String message;
     private String studentName;
     private int bpm;
+    // 存储步频值（可能与 bpm 同时存在）
+    private int stepFreq;
+    // 标记是否为步频告警（true 表示步频阈值触发）
+    private boolean isStep = false;
 
     // --- 新增：控制是否展开的字段 ---
     private boolean isExpanded = false;
@@ -18,7 +22,7 @@ public class HealthAlert {
         // bpm 在创建时没有传入，默认为0，需要在建立后设置。
     }
 
-    // ... Getters 和 Setters (保持之前的) ...
+    // ... Getters 和 Setters 
 
     public String getTimestamp() { return timestamp; }
     public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
@@ -31,6 +35,12 @@ public class HealthAlert {
 
     public int getBpm() { return bpm; }
     public void setBpm(int bpm) { this.bpm = bpm; }
+
+    public int getStepFreq() { return stepFreq; }
+    public void setStepFreq(int stepFreq) { this.stepFreq = stepFreq; }
+
+    public boolean isStep() { return isStep; }
+    public void setStep(boolean step) { isStep = step; }
 
     // --- 新增：展开状态的控制 ---
     public boolean isExpanded() { return isExpanded; }

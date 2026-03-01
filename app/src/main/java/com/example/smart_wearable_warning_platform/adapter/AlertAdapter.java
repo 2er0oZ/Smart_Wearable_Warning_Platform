@@ -38,8 +38,9 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.ViewHolder> 
         holder.tvStudentName.setText(alert.getStudentName());
         holder.tvMessage.setText(alert.getMessage());
 
-        // 绑定详情数据
-        holder.tvBpm.setText("异常心率: " + alert.getBpm() + " bpm");
+        // 绑定详情数据：始终显示心率与步频
+        holder.tvHr.setText("心率: " + alert.getBpm() + " bpm");
+        holder.tvStep.setText("步频: " + alert.getStepFreq());
         holder.tvTimestamp.setText("时间: " + alert.getTimestamp());
 
         // 处理折叠/展开状态
@@ -65,14 +66,15 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.ViewHolder> 
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvStudentName, tvMessage, tvBpm, tvTimestamp;
+        TextView tvStudentName, tvMessage, tvHr, tvStep, tvTimestamp;
         LinearLayout layoutDetails;
 
         public ViewHolder(View itemView) {
             super(itemView);
             tvStudentName = itemView.findViewById(R.id.tv_student_name);
             tvMessage = itemView.findViewById(R.id.tv_message);
-            tvBpm = itemView.findViewById(R.id.tv_bpm);
+            tvHr = itemView.findViewById(R.id.tv_hr);
+            tvStep = itemView.findViewById(R.id.tv_step);
             tvTimestamp = itemView.findViewById(R.id.tv_timestamp);
             layoutDetails = itemView.findViewById(R.id.layout_details);
         }

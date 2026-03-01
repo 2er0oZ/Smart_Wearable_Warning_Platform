@@ -153,23 +153,29 @@ public class DataManager {
         prefs.edit().putString(KEY_STUDENT_THRESHOLDS, json).apply();
     }
 
-    public void setStudentThreshold(String username, int min, int max) {
+    // 心率阈值 + 步频阈值四个参数
+    public void setStudentThreshold(String username, int minHr, int maxHr, int minStep, int maxStep) {
         Map<String, StudentThreshold> map = getStudentThresholdsMap();
-        StudentThreshold th = new StudentThreshold(min, max);
+        StudentThreshold th = new StudentThreshold(minHr, maxHr, minStep, maxStep);
         map.put(username, th);
         saveStudentThresholdsMap(map);
+    }
+
+    // 兼容老调用，只设置心率阈值，步频使用默认 0-5
+    public void setStudentThreshold(String username, int minHr, int maxHr) {
+        setStudentThreshold(username, minHr, maxHr, 0, 5);
     }
 
     /**
      * 返回指定用户的阈值数组：{min, max}. 如果该用户没有单独设置，返回全局阈值。
      */
-    public int[] getThresholdForUser(String username) {
+    public StudentThreshold getThresholdForUser(String username) {
         Map<String, StudentThreshold> map = getStudentThresholdsMap();
         if (map.containsKey(username)) {
-            StudentThreshold th = map.get(username);
-            return new int[]{th.getMin(), th.getMax()};
+            return map.get(username);
         }
-        return new int[]{getMinThreshold(), getMaxThreshold()};
+        // 全局阈值（心率） + 默认步频
+        return new StudentThreshold(getMinThreshold(), getMaxThreshold());
     }
 
     // --- CSV 数据处理 (核心逻辑) ---
@@ -207,7 +213,7 @@ public class DataManager {
                     data.add(entry);
 
                     // 实时预警检查逻辑
-                    checkThresholdAndAlert(bpm, timestamp);
+                    checkThresholdAndAlert(bpm, stepFreq, timestamp);
 
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
@@ -218,25 +224,45 @@ public class DataManager {
         return data;
     }
 
-    private void checkThresholdAndAlert(int bpm, String timestamp) {
+    private void checkThresholdAndAlert(int bpm, int stepFreq, String timestamp) {
         User currentUser = getCurrentUser();
         if (currentUser != null && "Student".equals(currentUser.getRole())) {
-            int[] th = getThresholdForUser(currentUser.getUsername());
-            int min = th[0];
-            int max = th[1];
+            StudentThreshold th = getThresholdForUser(currentUser.getUsername());
+            int minHr = th.getMinHr();
+            int maxHr = th.getMaxHr();
+            int minStep = th.getMinStep();
+            int maxStep = th.getMaxStep();
 
-            if (bpm < min) {
+            if (bpm < minHr) {
                 HealthAlert alert = new HealthAlert(timestamp,
-                        "心率过低预警: " + bpm + " bpm (阈值: " + min + ")",
+                        "心率过低预警: " + bpm + " bpm (阈值: " + minHr + ")",
                         currentUser.getUsername());
-                // 记录触发预警时的心率值，避免默认0导致展示错误
                 alert.setBpm(bpm);
+                alert.setStepFreq(stepFreq);
                 addAlert(alert);
-            } else if (bpm > max) {
+            } else if (bpm > maxHr) {
                 HealthAlert alert = new HealthAlert(timestamp,
-                        "心率过高预警: " + bpm + " bpm (阈值: " + max + ")",
+                        "心率过高预警: " + bpm + " bpm (阈值: " + maxHr + ")",
                         currentUser.getUsername());
                 alert.setBpm(bpm);
+                alert.setStepFreq(stepFreq);
+                addAlert(alert);
+            }
+
+            // 步频检查
+            if (stepFreq < minStep) {
+                HealthAlert alert = new HealthAlert(timestamp,
+                        "步频过低预警: " + stepFreq + " (阈值: " + minStep + ")",
+                        currentUser.getUsername());
+                alert.setStepFreq(stepFreq);
+                alert.setStep(true);
+                addAlert(alert);
+            } else if (stepFreq > maxStep) {
+                HealthAlert alert = new HealthAlert(timestamp,
+                        "步频过高预警: " + stepFreq + " (阈值: " + maxStep + ")",
+                        currentUser.getUsername());
+                alert.setStepFreq(stepFreq);
+                alert.setStep(true);
                 addAlert(alert);
             }
         }
@@ -292,14 +318,17 @@ public class DataManager {
         // 读取时使用 KEY_ALERTS (常量 "alerts_list")
         List<HealthAlert> allAlerts = getAllAlerts();
         // 对于指定的 username，优先使用该学生自定义阈值
-        int[] thForUser = getThresholdForUser(username);
-        int minThreshold = thForUser[0];
-        int maxThreshold = thForUser[1];
+        StudentThreshold thForUser = getThresholdForUser(username);
+        int minThreshold = thForUser.getMinHr();
+        int maxThreshold = thForUser.getMaxHr();
+        int minStep = thForUser.getMinStep();
+        int maxStep = thForUser.getMaxStep();
 
         boolean hasNewAlerts = false;
 
         for (HeartRateEntry entry : newEntries) {
             int bpm = entry.getBpm();
+            int stepFreq = entry.getStepFrequency();
             String timestamp = entry.getTimestamp();
 
             // 先删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
@@ -315,10 +344,23 @@ public class DataManager {
                 alert.setStudentName(username);
                 alert.setTimestamp(timestamp);
                 alert.setBpm(bpm);
-
+                alert.setStepFreq(stepFreq);
                 String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
                 alert.setMessage(type);
-
+                allAlerts.add(alert);
+                hasNewAlerts = true;
+            }
+            // 步频阈值
+            if (stepFreq < minStep || stepFreq > maxStep) {
+                HealthAlert alert = new HealthAlert();
+                alert.setStudentName(username);
+                alert.setTimestamp(timestamp);
+                // 保留心率供参考
+                alert.setBpm(bpm);
+                alert.setStepFreq(stepFreq);
+                alert.setStep(true);
+                String type = (stepFreq < minStep) ? "步频过低" : "步频过高";
+                alert.setMessage(type);
                 allAlerts.add(alert);
                 hasNewAlerts = true;
             }
@@ -338,20 +380,34 @@ public class DataManager {
         List<User> users = getAllUsers();
         for (User u : users) {
             String username = u.getUsername();
-            int[] th = getThresholdForUser(username);
-            int minThresholdForUser = th[0];
-            int maxThresholdForUser = th[1];
+            StudentThreshold th = getThresholdForUser(username);
+            int minThresholdForUser = th.getMinHr();
+            int maxThresholdForUser = th.getMaxHr();
+            int minStepForUser = th.getMinStep();
+            int maxStepForUser = th.getMaxStep();
             List<HeartRateEntry> data = getHeartRateData(username);
             for (HeartRateEntry entry : data) {
                 int bpm = entry.getBpm();
+                int stepFreq = entry.getStepFrequency();
                 String timestamp = entry.getTimestamp();
                 if (bpm < minThresholdForUser || bpm > maxThresholdForUser) {
                     HealthAlert alert = new HealthAlert();
                     alert.setStudentName(username);
                     alert.setTimestamp(timestamp);
                     alert.setBpm(bpm);
+                    alert.setStepFreq(stepFreq);
                     String type = (bpm < minThresholdForUser) ? "心率过低" : "心率过高";
                     alert.setMessage(type + ": " + bpm + " bpm (阈值: " + (bpm < minThresholdForUser ? minThresholdForUser : maxThresholdForUser) + ")");
+                    newAlerts.add(alert);
+                }
+                if (stepFreq < minStepForUser || stepFreq > maxStepForUser) {
+                    HealthAlert alert = new HealthAlert();
+                    alert.setStudentName(username);
+                    alert.setTimestamp(timestamp);
+                    alert.setStepFreq(stepFreq);
+                    alert.setStep(true);
+                    String type = (stepFreq < minStepForUser) ? "步频过低" : "步频过高";
+                    alert.setMessage(type + ": " + stepFreq + " (阈值: " + (stepFreq < minStepForUser ? minStepForUser : maxStepForUser) + ")");
                     newAlerts.add(alert);
                 }
             }
