@@ -176,13 +176,21 @@ public class HeartRateFragment extends Fragment {
         rightAxis.setEnabled(true);
         float minStep = stepSet.getYMin();
         float maxStep = stepSet.getYMax();
-        // 确保非负并且轴从0开始
-        minStep = Math.max(minStep, 0f);
-        rightAxis.setAxisMinimum(0f);
+        float margin = 10f; // 让图形上下各留一些空间
+        // 轴最小值设置为 minStep - margin，即可在底部留白，可能为负数
+        rightAxis.setAxisMinimum(minStep - margin);
         if (maxStep <= 0) {
             maxStep = 10; // 如果所有数据都是0，则给一个默认范围
         }
-        rightAxis.setAxisMaximum(maxStep + 10);
+        rightAxis.setAxisMaximum(maxStep + margin);
+        // 隐藏负数标签，使底部空间不显示数字
+        rightAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                if (value < 0) return "";
+                return String.valueOf((int) value);
+            }
+        });
         rightAxis.setDrawGridLines(false);
         rightAxis.setTextColor(Color.BLUE);
 
@@ -196,6 +204,9 @@ public class HeartRateFragment extends Fragment {
         }
         leftAxis.setAxisMinimum(minVal - 10);
         leftAxis.setAxisMaximum(maxVal + 10);
+        // 给心率轴加一些边缘空隙
+        leftAxis.setSpaceTop(15f);
+        leftAxis.setSpaceBottom(15f);
         leftAxis.setDrawGridLines(true);
         leftAxis.setTextColor(Color.DKGRAY);
         leftAxis.setGranularity(1f);
