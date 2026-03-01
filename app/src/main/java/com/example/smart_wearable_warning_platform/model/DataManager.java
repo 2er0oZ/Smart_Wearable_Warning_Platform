@@ -242,9 +242,23 @@ public class DataManager {
         }
     }
     // 保存心率数据 (关联到具体的用户名)
+    // 将新数据合并到已有数据中：同一时间戳使用新条目，最终按时间排序
     public void saveHeartRateData(String username, List<HeartRateEntry> data) {
         String key = "hr_data_" + username;
-        String json = gson.toJson(data);
+        List<HeartRateEntry> existing = getHeartRateData(username);
+        // 使用 LinkedHashMap 保持插入顺序（时间顺序会在最后排序）
+        java.util.Map<String, HeartRateEntry> map = new java.util.LinkedHashMap<>();
+        for (HeartRateEntry e : existing) {
+            map.put(e.getTimestamp(), e);
+        }
+        for (HeartRateEntry e : data) {
+            // 新数据覆盖旧数据
+            map.put(e.getTimestamp(), e);
+        }
+        List<HeartRateEntry> merged = new java.util.ArrayList<>(map.values());
+        // 按时间戳升序
+        java.util.Collections.sort(merged, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+        String json = gson.toJson(merged);
         prefs.edit().putString(key, json).apply();
     }
 
@@ -288,27 +302,25 @@ public class DataManager {
             int bpm = entry.getBpm();
             String timestamp = entry.getTimestamp();
 
+            // 先删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
+            for (int i = allAlerts.size() - 1; i >= 0; --i) {
+                HealthAlert existing = allAlerts.get(i);
+                if (existing.getStudentName().equals(username) && existing.getTimestamp().equals(timestamp)) {
+                    allAlerts.remove(i);
+                }
+            }
+
             if (bpm < minThreshold || bpm > maxThreshold) {
-                boolean isDuplicate = false;
-                for (HealthAlert existing : allAlerts) {
-                    if (existing.getStudentName().equals(username) && existing.getTimestamp().equals(timestamp)) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
+                HealthAlert alert = new HealthAlert();
+                alert.setStudentName(username);
+                alert.setTimestamp(timestamp);
+                alert.setBpm(bpm);
 
-                if (!isDuplicate) {
-                    HealthAlert alert = new HealthAlert();
-                    alert.setStudentName(username);
-                    alert.setTimestamp(timestamp);
-                    alert.setBpm(bpm);
+                String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
+                alert.setMessage(type);
 
-                    String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
-                    alert.setMessage(type);
-
-                    allAlerts.add(alert);
-                    hasNewAlerts = true;
-                }
+                allAlerts.add(alert);
+                hasNewAlerts = true;
             }
         }
 

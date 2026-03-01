@@ -100,9 +100,13 @@ public class HeartRateFragment extends Fragment {
 
             User currentUser = dataManager.getCurrentUser();
             if (currentUser != null) {
+                // 保存并合并已有数据
                 dataManager.saveHeartRateData(currentUser.getUsername(), data);
+                // 使用原始新条目生成预警
                 dataManager.checkAndGenerateAlerts(currentUser.getUsername(), data);
                 Toast.makeText(requireContext(), "数据已保存，预警检测完成", Toast.LENGTH_SHORT).show();
+                // 将合并后的全量数据加载到图表
+                data = dataManager.getHeartRateData(currentUser.getUsername());
             }
 
             renderChart(data);
