@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -192,7 +193,7 @@ public class DataManager {
     // --- CSV 数据处理 (核心逻辑) ---
 
     public List<HeartRateEntry> parseCSV(InputStream inputStream) throws IOException {
-        List<HeartRateEntry> data = new ArrayList<>();
+        List<HeartRateEntry> rawData = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         String line;
 
@@ -221,10 +222,7 @@ public class DataManager {
                     }
 
                     HeartRateEntry entry = new HeartRateEntry(timestamp, bpm, stepFreq);
-                    data.add(entry);
-
-                    // 实时预警检查逻辑
-                    checkThresholdAndAlert(bpm, stepFreq, timestamp);
+                    rawData.add(entry);
 
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
@@ -232,7 +230,76 @@ public class DataManager {
             }
         }
         reader.close();
-        return data;
+        
+        // 按分钟聚合数据，取平均值
+        List<HeartRateEntry> averagedData = aggregateDataByMinute(rawData);
+        
+        // 对聚合后的数据进行预警检查
+        for (HeartRateEntry entry : averagedData) {
+            checkThresholdAndAlert(entry.getBpm(), entry.getStepFrequency(), entry.getTimestamp());
+        }
+        
+        return averagedData;
+    }
+    
+    /**
+     * 按分钟聚合数据，取平均值
+     * @param rawData 原始数据列表
+     * @return 按分钟聚合后的数据列表
+     */
+    private List<HeartRateEntry> aggregateDataByMinute(List<HeartRateEntry> rawData) {
+        if (rawData == null || rawData.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 使用Map按分钟分组，键为分钟级时间戳（格式：yyyy-MM-dd HH:mm）
+        Map<String, List<HeartRateEntry>> minuteGroups = new HashMap<>();
+        
+        for (HeartRateEntry entry : rawData) {
+            String timestamp = entry.getTimestamp();
+            // 提取分钟级时间戳（去掉秒）
+            String minuteTimestamp = timestamp.substring(0, Math.min(16, timestamp.length()));
+            
+            // 如果该分钟还没有分组，则创建
+            if (!minuteGroups.containsKey(minuteTimestamp)) {
+                minuteGroups.put(minuteTimestamp, new ArrayList<>());
+            }
+            
+            // 添加到对应分钟的分组
+            minuteGroups.get(minuteTimestamp).add(entry);
+        }
+        
+        // 计算每分钟的平均值
+        List<HeartRateEntry> averagedData = new ArrayList<>();
+        for (Map.Entry<String, List<HeartRateEntry>> entry : minuteGroups.entrySet()) {
+            String minuteTimestamp = entry.getKey();
+            List<HeartRateEntry> entries = entry.getValue();
+            
+            if (entries.isEmpty()) {
+                continue;
+            }
+            
+            // 计算心率和步频的平均值
+            double totalHr = 0;
+            double totalStep = 0;
+            
+            for (HeartRateEntry e : entries) {
+                totalHr += e.getBpm();
+                totalStep += e.getStepFrequency();
+            }
+            
+            int avgHr = (int) Math.round(totalHr / entries.size());
+            int avgStep = (int) Math.round(totalStep / entries.size());
+            
+            // 创建新的聚合数据条目，使用分钟级时间戳
+            HeartRateEntry averagedEntry = new HeartRateEntry(minuteTimestamp + ":00", avgHr, avgStep);
+            averagedData.add(averagedEntry);
+        }
+        
+        // 按时间戳排序
+        Collections.sort(averagedData, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+        
+        return averagedData;
     }
 
     private void checkThresholdAndAlert(int bpm, int stepFreq, String timestamp) {
@@ -316,6 +383,9 @@ public class DataManager {
      * 检查新导入的数据，如果超出阈值，则生成预警记录
      */
     public void checkAndGenerateAlerts(String username, List<HeartRateEntry> newEntries) {
+        // 先按分钟聚合数据
+        List<HeartRateEntry> averagedEntries = aggregateDataByMinute(newEntries);
+        
         // 读取时使用 KEY_ALERTS (常量 "alerts_list")
         List<HealthAlert> allAlerts = getAllAlerts();
         // 对于指定的 username，优先使用该学生自定义阈值
@@ -327,7 +397,7 @@ public class DataManager {
 
         boolean hasNewAlerts = false;
 
-        for (HeartRateEntry entry : newEntries) {
+        for (HeartRateEntry entry : averagedEntries) {
             int bpm = entry.getBpm();
             int stepFreq = entry.getStepFrequency();
             String timestamp = entry.getTimestamp();

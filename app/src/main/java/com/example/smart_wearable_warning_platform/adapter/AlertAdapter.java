@@ -54,9 +54,6 @@ public class AlertAdapter extends RecyclerView.Adapter<AlertAdapter.ViewHolder> 
             // 通知当前item状态改变（只刷新这一个item，优化性能）
             notifyItemChanged(position);
 
-            // 也可以直接操作 View 视图实现（可选），不需要 notifyItemChanged，这样没有动画刷新
-            // layoutDetails.setVisibility(!isExpanded ? View.VISIBLE : View.GONE);
-            // alert.setExpanded(!isExpanded);
         });
     }
 
