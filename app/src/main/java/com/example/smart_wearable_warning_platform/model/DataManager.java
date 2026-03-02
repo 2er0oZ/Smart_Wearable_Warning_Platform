@@ -161,6 +161,17 @@ public class DataManager {
         saveStudentThresholdsMap(map);
     }
 
+    // 心率阈值 + 步频阈值 + 睡眠时间区间
+    public void setStudentThresholdWithSleepTime(String username, int minHr, int maxHr, int minStep, int maxStep, String sleepStart, String sleepEnd) {
+        Map<String, StudentThreshold> map = getStudentThresholdsMap();
+        StudentThreshold th = new StudentThreshold(minHr, maxHr, minStep, maxStep);
+        th.setSleepStartTime(sleepStart);
+        th.setSleepEndTime(sleepEnd);
+        th.setEnableSleepTimeAlert(true);
+        map.put(username, th);
+        saveStudentThresholdsMap(map);
+    }
+
     // 兼容老调用，只设置心率阈值，步频使用默认 0-5
     public void setStudentThreshold(String username, int minHr, int maxHr) {
         setStudentThreshold(username, minHr, maxHr, 0, 5);
@@ -233,36 +244,26 @@ public class DataManager {
             int minStep = th.getMinStep();
             int maxStep = th.getMaxStep();
 
-            if (bpm < minHr) {
-                HealthAlert alert = new HealthAlert(timestamp,
-                        "心率过低预警: " + bpm + " bpm (阈值: " + minHr + ")",
-                        currentUser.getUsername());
+            // 检查是否在睡眠时间预警区间内
+            boolean isInSleepTime = isInSleepTimeRange(timestamp, th);
+            
+            // 仅当心率 AND 步频同时不在各自区间时触发预警
+            boolean hrBad = bpm < minHr || bpm > maxHr;
+            boolean stepBad = stepFreq < minStep || stepFreq > maxStep;
+            
+            // 修改预警条件：在睡眠时间预警区间内，同时检测心率与步频都不符合阈值时才发送预警通知
+            if (isInSleepTime && hrBad && stepBad) {
+                // 构建带阈值和步频的消息
+                String msg;
+                if (bpm < minHr) {
+                    msg = "睡眠时间心率过低：" + bpm + " bpm（阈值：" + minHr + "）（步频：" + stepFreq + ")";
+                } else {
+                    msg = "睡眠时间心率过高：" + bpm + " bpm（阈值：" + maxHr + "）（步频：" + stepFreq + ")";
+                }
+                HealthAlert alert = new HealthAlert(timestamp, msg, currentUser.getUsername());
                 alert.setBpm(bpm);
                 alert.setStepFreq(stepFreq);
-                addAlert(alert);
-            } else if (bpm > maxHr) {
-                HealthAlert alert = new HealthAlert(timestamp,
-                        "心率过高预警: " + bpm + " bpm (阈值: " + maxHr + ")",
-                        currentUser.getUsername());
-                alert.setBpm(bpm);
-                alert.setStepFreq(stepFreq);
-                addAlert(alert);
-            }
-
-            // 步频检查
-            if (stepFreq < minStep) {
-                HealthAlert alert = new HealthAlert(timestamp,
-                        "步频过低预警: " + stepFreq + " (阈值: " + minStep + ")",
-                        currentUser.getUsername());
-                alert.setStepFreq(stepFreq);
-                alert.setStep(true);
-                addAlert(alert);
-            } else if (stepFreq > maxStep) {
-                HealthAlert alert = new HealthAlert(timestamp,
-                        "步频过高预警: " + stepFreq + " (阈值: " + maxStep + ")",
-                        currentUser.getUsername());
-                alert.setStepFreq(stepFreq);
-                alert.setStep(true);
+                alert.setStep(true); // 标记为睡眠时间预警
                 addAlert(alert);
             }
         }
@@ -339,28 +340,22 @@ public class DataManager {
                 }
             }
 
-            if (bpm < minThreshold || bpm > maxThreshold) {
+            // 检查是否在睡眠时间预警区间内
+            boolean isInSleepTime = isInSleepTimeRange(timestamp, thForUser);
+            
+            boolean hrBad = bpm < minThreshold || bpm > maxThreshold;
+            boolean stepBad = stepFreq < minStep || stepFreq > maxStep;
+            
+            // 修改预警条件：在睡眠时间预警区间内，同时检测心率与步频都不符合阈值时才发送预警通知
+            if (isInSleepTime && hrBad && stepBad) {
+                String type = (bpm < minThreshold) ? "睡眠时间心率过低" : "睡眠时间心率过高";
                 HealthAlert alert = new HealthAlert();
                 alert.setStudentName(username);
                 alert.setTimestamp(timestamp);
                 alert.setBpm(bpm);
                 alert.setStepFreq(stepFreq);
-                String type = (bpm < minThreshold) ? "心率过低" : "心率过高";
                 alert.setMessage(type);
-                allAlerts.add(alert);
-                hasNewAlerts = true;
-            }
-            // 步频阈值
-            if (stepFreq < minStep || stepFreq > maxStep) {
-                HealthAlert alert = new HealthAlert();
-                alert.setStudentName(username);
-                alert.setTimestamp(timestamp);
-                // 保留心率供参考
-                alert.setBpm(bpm);
-                alert.setStepFreq(stepFreq);
-                alert.setStep(true);
-                String type = (stepFreq < minStep) ? "步频过低" : "步频过高";
-                alert.setMessage(type);
+                alert.setStep(true); // 标记为睡眠时间预警
                 allAlerts.add(alert);
                 hasNewAlerts = true;
             }
@@ -390,24 +385,28 @@ public class DataManager {
                 int bpm = entry.getBpm();
                 int stepFreq = entry.getStepFrequency();
                 String timestamp = entry.getTimestamp();
-                if (bpm < minThresholdForUser || bpm > maxThresholdForUser) {
+                
+                // 检查是否在睡眠时间预警区间内
+                boolean isInSleepTime = isInSleepTimeRange(timestamp, th);
+                
+                boolean hrBad = bpm < minThresholdForUser || bpm > maxThresholdForUser;
+                boolean stepBad = stepFreq < minStepForUser || stepFreq > maxStepForUser;
+                
+                // 修改预警条件：在睡眠时间预警区间内，同时检测心率与步频都不符合阈值时才发送预警通知
+                if (isInSleepTime && hrBad && stepBad) {
+                    String msg;
+                    if (bpm < minThresholdForUser) {
+                        msg = "睡眠时间心率过低：" + bpm + " bpm（阈值：" + minThresholdForUser + "）（步频：" + stepFreq + ")";
+                    } else {
+                        msg = "睡眠时间心率过高：" + bpm + " bpm（阈值：" + maxThresholdForUser + "）（步频：" + stepFreq + ")";
+                    }
                     HealthAlert alert = new HealthAlert();
                     alert.setStudentName(username);
                     alert.setTimestamp(timestamp);
                     alert.setBpm(bpm);
                     alert.setStepFreq(stepFreq);
-                    String type = (bpm < minThresholdForUser) ? "心率过低" : "心率过高";
-                    alert.setMessage(type + ": " + bpm + " bpm (阈值: " + (bpm < minThresholdForUser ? minThresholdForUser : maxThresholdForUser) + ")");
-                    newAlerts.add(alert);
-                }
-                if (stepFreq < minStepForUser || stepFreq > maxStepForUser) {
-                    HealthAlert alert = new HealthAlert();
-                    alert.setStudentName(username);
-                    alert.setTimestamp(timestamp);
-                    alert.setStepFreq(stepFreq);
-                    alert.setStep(true);
-                    String type = (stepFreq < minStepForUser) ? "步频过低" : "步频过高";
-                    alert.setMessage(type + ": " + stepFreq + " (阈值: " + (stepFreq < minStepForUser ? minStepForUser : maxStepForUser) + ")");
+                    alert.setMessage(msg);
+                    alert.setStep(true); // 标记为睡眠时间预警
                     newAlerts.add(alert);
                 }
             }
@@ -416,8 +415,75 @@ public class DataManager {
         // 存储新的预警列表（覆盖原有）
         saveAlerts(newAlerts);
     }
-
-
-
-
+    
+    /**
+     * 检查给定时间戳是否在睡眠时间预警区间内
+     * @param timestamp 数据时间戳
+     * @param threshold 学生阈值设置
+     * @return 是否在睡眠时间预警区间内
+     */
+    private boolean isInSleepTimeRange(String timestamp, StudentThreshold threshold) {
+        if (!threshold.isEnableSleepTimeAlert()) {
+            return false; // 未启用睡眠时间预警
+        }
+        
+        try {
+            // 解析时间戳中的时间部分
+            String[] dateTimeParts = timestamp.split(" ");
+            if (dateTimeParts.length < 2) {
+                return false; // 时间戳格式不正确
+            }
+            
+            String timeStr = dateTimeParts[1]; // 获取时间部分
+            String[] timeParts = timeStr.split(":");
+            if (timeParts.length < 2) {
+                return false; // 时间格式不正确
+            }
+            
+            int hour = Integer.parseInt(timeParts[0]);
+            int minute = Integer.parseInt(timeParts[1]);
+            
+            // 解析睡眠开始和结束时间
+            String[] sleepStartParts = threshold.getSleepStartTime().split(":");
+            String[] sleepEndParts = threshold.getSleepEndTime().split(":");
+            
+            int sleepStartHour = Integer.parseInt(sleepStartParts[0]);
+            int sleepStartMinute = Integer.parseInt(sleepStartParts[1]);
+            int sleepEndHour = Integer.parseInt(sleepEndParts[0]);
+            int sleepEndMinute = Integer.parseInt(sleepEndParts[1]);
+            
+            // 检查当前时间是否在睡眠时间区间内
+            return isInTimeRange(hour, minute, sleepStartHour, sleepStartMinute, sleepEndHour, sleepEndMinute);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * 检查给定时间是否在指定的时间范围内
+     * @param hour 当前小时
+     * @param minute 当前分钟
+     * @param startHour 开始小时
+     * @param startMinute 开始分钟
+     * @param endHour 结束小时
+     * @param endMinute 结束分钟
+     * @return 是否在时间范围内
+     */
+    private boolean isInTimeRange(int hour, int minute, int startHour, int startMinute, int endHour, int endMinute) {
+        // 将时间转换为分钟数，便于比较
+        int currentMinutes = hour * 60 + minute;
+        int startMinutes = startHour * 60 + startMinute;
+        int endMinutes = endHour * 60 + endMinute;
+        
+        // 处理跨日情况（如21:00到次日7:00）
+        if (startMinutes > endMinutes) {
+            // 时间范围跨日，例如21:00到次日7:00
+            // 当前时间要么大于等于开始时间，要么小于等于结束时间
+            return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+        } else {
+            // 普通时间范围，不跨日
+            return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+        }
+    }
 }

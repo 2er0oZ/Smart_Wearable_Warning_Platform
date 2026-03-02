@@ -133,6 +133,19 @@ public class StudentManagementFragment extends Fragment {
         EditText etMaxStep = new EditText(requireContext());
         etMaxStep.setInputType(InputType.TYPE_CLASS_NUMBER);
         etMaxStep.setHint("最高步频");
+        
+        // 睡眠时间预警区间设置
+        TextView tvSleepTimeLabel = new TextView(requireContext());
+        tvSleepTimeLabel.setText("睡眠时间预警区间设置");
+        tvSleepTimeLabel.setPadding(0, 20, 0, 10);
+        
+        EditText etSleepStart = new EditText(requireContext());
+        etSleepStart.setHint("睡眠开始时间 (如: 21:00)");
+        etSleepStart.setText("21:00");
+        
+        EditText etSleepEnd = new EditText(requireContext());
+        etSleepEnd.setHint("睡眠结束时间 (如: 07:00)");
+        etSleepEnd.setText("07:00");
 
         // 获取当前阈值对象
         StudentThreshold th = dataManager.getThresholdForUser(user.getUsername());
@@ -140,11 +153,16 @@ public class StudentManagementFragment extends Fragment {
         etMaxHr.setText(String.valueOf(th.getMaxHr()));
         etMinStep.setText(String.valueOf(th.getMinStep()));
         etMaxStep.setText(String.valueOf(th.getMaxStep()));
+        etSleepStart.setText(th.getSleepStartTime());
+        etSleepEnd.setText(th.getSleepEndTime());
 
         layout.addView(etMinHr);
         layout.addView(etMaxHr);
         layout.addView(etMinStep);
         layout.addView(etMaxStep);
+        layout.addView(tvSleepTimeLabel);
+        layout.addView(etSleepStart);
+        layout.addView(etSleepEnd);
 
         builder.setView(layout);
 
@@ -154,6 +172,9 @@ public class StudentManagementFragment extends Fragment {
                 int maxHr = Integer.parseInt(etMaxHr.getText().toString().trim());
                 int minStep = Integer.parseInt(etMinStep.getText().toString().trim());
                 int maxStep = Integer.parseInt(etMaxStep.getText().toString().trim());
+                String sleepStart = etSleepStart.getText().toString().trim();
+                String sleepEnd = etSleepEnd.getText().toString().trim();
+                
                 if (minHr >= maxHr) {
                     Toast.makeText(requireContext(), "最低心率必须小于最高心率", Toast.LENGTH_SHORT).show();
                     return;
@@ -162,7 +183,14 @@ public class StudentManagementFragment extends Fragment {
                     Toast.makeText(requireContext(), "最低步频必须小于最高步频", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                dataManager.setStudentThreshold(user.getUsername(), minHr, maxHr, minStep, maxStep);
+                // 验证时间格式
+                if (!isValidTimeFormat(sleepStart) || !isValidTimeFormat(sleepEnd)) {
+                    Toast.makeText(requireContext(), "请输入有效的时间格式 (HH:MM)", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                // 保存阈值，包括睡眠时间
+                dataManager.setStudentThresholdWithSleepTime(user.getUsername(), minHr, maxHr, minStep, maxStep, sleepStart, sleepEnd);
                 // 保存后建议重建预警以便立即生效
                 dataManager.rebuildAlertsFromSavedData();
                 Toast.makeText(requireContext(), "阈值已保存", Toast.LENGTH_SHORT).show();
@@ -193,5 +221,15 @@ public class StudentManagementFragment extends Fragment {
                 recyclerStudents.getAdapter().notifyDataSetChanged();
             }
         });
+    }
+    
+    /**
+     * 验证时间格式是否为 HH:MM
+     */
+    private boolean isValidTimeFormat(String time) {
+        if (time == null || !time.matches("^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")) {
+            return false;
+        }
+        return true;
     }
 }
