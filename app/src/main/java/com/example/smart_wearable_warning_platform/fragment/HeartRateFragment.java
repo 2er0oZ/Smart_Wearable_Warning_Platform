@@ -1,5 +1,6 @@
 package com.example.smart_wearable_warning_platform.fragment;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -58,12 +59,16 @@ public class HeartRateFragment extends Fragment {
     private TextView tvStartDate, tvStartTime, tvEndDate, tvEndTime;
     private Button btnQuery, btnReset;
     private List<HeartRateEntry> allData; // 存储所有数据，用于查询过滤
+    private List<HeartRateEntry> filteredData; // 存储过滤后的数据
     
     // 日期和时间选择器相关变量
     private Calendar startCalendar = Calendar.getInstance();
     private Calendar endCalendar = Calendar.getInstance();
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    
+    // 查询状态保存
+    private boolean isQueryActive = false; // 是否有查询结果
 
     private final SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
@@ -110,6 +115,10 @@ public class HeartRateFragment extends Fragment {
         tvEndTime.setOnClickListener(v -> showEndTimePicker());
 
         loadSavedData();
+        
+        // 恢复查询状态
+        restoreQueryState();
+        
         return root;
     }
 
@@ -118,7 +127,12 @@ public class HeartRateFragment extends Fragment {
         if (currentUser != null) {
             allData = dataManager.getHeartRateData(currentUser.getUsername());
             if (!allData.isEmpty()) {
-                renderChart(allData);
+                // 如果有查询结果，显示查询结果；否则显示全部数据
+                if (isQueryActive && filteredData != null && !filteredData.isEmpty()) {
+                    renderChart(filteredData);
+                } else {
+                    renderChart(allData);
+                }
             }
         }
     }
@@ -142,10 +156,23 @@ public class HeartRateFragment extends Fragment {
                 dataManager.checkAndGenerateAlerts(currentUser.getUsername(), data);
                 Toast.makeText(requireContext(), "数据已保存，预警检测完成", Toast.LENGTH_SHORT).show();
                 // 将合并后的全量数据加载到图表
-            allData = dataManager.getHeartRateData(currentUser.getUsername());
-        }
+                allData = dataManager.getHeartRateData(currentUser.getUsername());
+                // 重置查询状态，因为新数据可能使之前的查询失效
+                isQueryActive = false;
+                filteredData = null;
+                // 清空时间选择控件
+                tvStartDate.setText("");
+                tvStartTime.setText("");
+                tvEndDate.setText("");
+                tvEndTime.setText("");
+            }
 
-        renderChart(allData);
+        // 渲染图表
+        if (isQueryActive && filteredData != null && !filteredData.isEmpty()) {
+            renderChart(filteredData);
+        } else {
+            renderChart(allData);
+        }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -242,7 +269,7 @@ public class HeartRateFragment extends Fragment {
             }
         });
         rightAxis.setDrawGridLines(false);
-        rightAxis.setTextColor(Color.BLUE);
+        rightAxis.setTextColor(Color.parseColor("#4ECDC4"));
 
         // 左侧 Y 轴心率设置保留
         YAxis leftAxis = lineChart.getAxisLeft();
@@ -284,10 +311,69 @@ public class HeartRateFragment extends Fragment {
         lineChart.moveViewToX(0);
         // 添加动画效果
         lineChart.animateX(1000);
-        // 添加动画效果
-        lineChart.animateX(1000);
     }
-
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 在Fragment恢复时，重新加载数据并保持查询状态
+        loadSavedData();
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        // 在Fragment暂停时，保存当前查询状态
+        saveQueryState();
+    }
+    
+    /**
+     * 保存当前查询状态
+     */
+    private void saveQueryState() {
+        // 使用SharedPreferences保存查询状态
+        android.content.SharedPreferences prefs = requireContext().getSharedPreferences("HeartRateFragment", Context.MODE_PRIVATE);
+        android.content.SharedPreferences.Editor editor = prefs.edit();
+        
+        // 保存查询状态
+        editor.putBoolean("isQueryActive", isQueryActive);
+        
+        // 保存时间选择
+        editor.putString("startDate", tvStartDate.getText().toString());
+        editor.putString("startTime", tvStartTime.getText().toString());
+        editor.putString("endDate", tvEndDate.getText().toString());
+        editor.putString("endTime", tvEndTime.getText().toString());
+        
+        editor.apply();
+    }
+    
+    /**
+     * 恢复查询状态
+     */
+    private void restoreQueryState() {
+        // 从SharedPreferences恢复查询状态
+        android.content.SharedPreferences prefs = requireContext().getSharedPreferences("HeartRateFragment", Context.MODE_PRIVATE);
+        
+        // 恢复查询状态
+        isQueryActive = prefs.getBoolean("isQueryActive", false);
+        
+        // 恢复时间选择
+        String startDate = prefs.getString("startDate", "");
+        String startTime = prefs.getString("startTime", "");
+        String endDate = prefs.getString("endDate", "");
+        String endTime = prefs.getString("endTime", "");
+        
+        tvStartDate.setText(startDate);
+        tvStartTime.setText(startTime);
+        tvEndDate.setText(endDate);
+        tvEndTime.setText(endTime);
+        
+        // 如果有查询状态，重新执行查询
+        if (isQueryActive && !startDate.isEmpty() && !startTime.isEmpty() && !endDate.isEmpty() && !endTime.isEmpty()) {
+            queryDataByTimeRange();
+        }
+    }
+    
     private void updateStatistics(List<HeartRateEntry> data) {
         if (data == null || data.isEmpty()) {
             tvAvgHr.setText("--");
@@ -365,7 +451,7 @@ public class HeartRateFragment extends Fragment {
             }
             
             // 过滤数据
-            List<HeartRateEntry> filteredData = new ArrayList<>();
+            filteredData = new ArrayList<>();
             for (HeartRateEntry entry : allData) {
                 try {
                     Date entryDate = sdf.parse(entry.getTimestamp());
@@ -379,8 +465,10 @@ public class HeartRateFragment extends Fragment {
             
             if (filteredData.isEmpty()) {
                 Toast.makeText(requireContext(), "所选时间区间内没有数据", Toast.LENGTH_SHORT).show();
+                isQueryActive = false; // 查询无结果，标记为非活动状态
             } else {
                 Toast.makeText(requireContext(), "查询到 " + filteredData.size() + " 条数据", Toast.LENGTH_SHORT).show();
+                isQueryActive = true; // 查询有结果，标记为活动状态
             }
             
             // 更新图表
@@ -404,6 +492,10 @@ public class HeartRateFragment extends Fragment {
             renderChart(allData);
             Toast.makeText(requireContext(), "已重置，显示所有数据", Toast.LENGTH_SHORT).show();
         }
+        
+        // 重置查询状态
+        isQueryActive = false;
+        filteredData = null;
     }
     
     /**
