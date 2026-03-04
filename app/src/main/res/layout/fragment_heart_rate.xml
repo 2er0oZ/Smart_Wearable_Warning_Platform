@@ -14,13 +14,165 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
+    <!-- 时间区间选择区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F0F0F0"
+        android:padding="6dp"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="查询时间区间"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="3dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- 开始时间 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="3dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="开始时间"
+                    android:textSize="10sp"
+                    android:layout_marginBottom="2dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_start_date"
+                        android:layout_width="0dp"
+                        android:layout_height="28dp"
+                        android:layout_weight="1"
+                        android:hint="日期"
+                        android:background="@android:drawable/edit_text"
+                        android:gravity="center_vertical"
+                        android:padding="3dp"
+                        android:textSize="9sp"
+                        android:drawableEnd="@android:drawable/ic_menu_my_calendar"
+                        android:clickable="true"
+                        android:focusable="false"/>
+
+                    <TextView
+                        android:id="@+id/tv_start_time"
+                        android:layout_width="0dp"
+                        android:layout_height="28dp"
+                        android:layout_weight="1"
+                        android:hint="时间"
+                        android:background="@android:drawable/edit_text"
+                        android:gravity="center_vertical"
+                        android:padding="3dp"
+                        android:textSize="9sp"
+                        android:drawableEnd="@android:drawable/ic_menu_recent_history"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:layout_marginStart="2dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 结束时间 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="3dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="结束时间"
+                    android:textSize="10sp"
+                    android:layout_marginBottom="2dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_end_date"
+                        android:layout_width="0dp"
+                        android:layout_height="28dp"
+                        android:layout_weight="1"
+                        android:hint="日期"
+                        android:background="@android:drawable/edit_text"
+                        android:gravity="center_vertical"
+                        android:padding="3dp"
+                        android:textSize="9sp"
+                        android:drawableEnd="@android:drawable/ic_menu_my_calendar"
+                        android:clickable="true"
+                        android:focusable="false"/>
+
+                    <TextView
+                        android:id="@+id/tv_end_time"
+                        android:layout_width="0dp"
+                        android:layout_height="28dp"
+                        android:layout_weight="1"
+                        android:hint="时间"
+                        android:background="@android:drawable/edit_text"
+                        android:gravity="center_vertical"
+                        android:padding="3dp"
+                        android:textSize="9sp"
+                        android:drawableEnd="@android:drawable/ic_menu_recent_history"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:layout_marginStart="2dp"/>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp">
+
+            <Button
+                android:id="@+id/btn_query"
+                android:layout_width="0dp"
+                android:layout_height="35dp"
+                android:layout_weight="1"
+                android:text="查询"
+                android:textSize="10sp"
+                android:layout_marginEnd="3dp"/>
+
+            <Button
+                android:id="@+id/btn_reset"
+                android:layout_width="0dp"
+                android:layout_height="35dp"
+                android:layout_weight="1"
+                android:text="重置"
+                android:textSize="10sp"
+                android:layout_marginStart="3dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="#F5F5F5"
-        android:padding="10dp"
-        android:layout_marginBottom="16dp"
+        android:padding="6dp"
+        android:layout_marginBottom="6dp"
         android:gravity="center">
 
         <LinearLayout
@@ -33,14 +185,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="平均心率"
-                android:textSize="12sp"
+                android:textSize="9sp"
                 android:textColor="#666666"/>
             <TextView
                 android:id="@+id/tv_avg_hr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--"
-                android:textSize="20sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#000000"/>
         </LinearLayout>
@@ -55,14 +207,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="最高心率"
-                android:textSize="12sp"
+                android:textSize="9sp"
                 android:textColor="#666666"/>
             <TextView
                 android:id="@+id/tv_max_hr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--"
-                android:textSize="20sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#FF4444"/>
         </LinearLayout>
@@ -77,14 +229,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="最低心率"
-                android:textSize="12sp"
+                android:textSize="9sp"
                 android:textColor="#666666"/>
             <TextView
                 android:id="@+id/tv_min_hr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--"
-                android:textSize="20sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#2196F3"/>
         </LinearLayout>
@@ -97,8 +249,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="#F5F5F5"
-        android:padding="10dp"
-        android:layout_marginBottom="16dp"
+        android:padding="6dp"
+        android:layout_marginBottom="6dp"
         android:gravity="center">
 
         <LinearLayout
@@ -111,14 +263,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="最高步频"
-                android:textSize="12sp"
+                android:textSize="9sp"
                 android:textColor="#666666"/>
             <TextView
                 android:id="@+id/tv_max_steps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--"
-                android:textSize="20sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#FF4444"/>
         </LinearLayout>
@@ -133,39 +285,61 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="最低步频"
-                android:textSize="12sp"
+                android:textSize="9sp"
                 android:textColor="#666666"/>
             <TextView
                 android:id="@+id/tv_min_steps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--"
-                android:textSize="20sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#2196F3"/>
         </LinearLayout>
 
     </LinearLayout>
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/line_chart"
+    <!-- 折线图区域 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:padding="6dp"
+        android:layout_marginBottom="6dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="心率与步频趋势图"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="6dp" />
+        
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/line_chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FAFAFA" />
+            
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="80dp"> <!-- 保证底部按钮不会被底部导航遮挡 -->
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="40dp"> <!-- 保证底部按钮不会被底部导航遮挡 -->
 
         <Button
             android:id="@+id/btn_upload_csv"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:text="导入数据"/>
+            android:text="导入数据"
+            android:textSize="11sp"/>
 
     </LinearLayout>
 

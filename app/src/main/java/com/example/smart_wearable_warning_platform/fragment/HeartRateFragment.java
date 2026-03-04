@@ -33,10 +33,18 @@ import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.io.InputStream;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
+import android.widget.DatePicker;
+import android.widget.TimePicker;
 
 public class HeartRateFragment extends Fragment {
 
@@ -45,6 +53,17 @@ public class HeartRateFragment extends Fragment {
     private LineChart lineChart;
     private TextView tvAvgHr, tvMaxHr, tvMinHr;
     private TextView tvMaxSteps, tvMinSteps; // 步频统计（只保留最高和最低）
+    
+    // 时间查询相关控件
+    private TextView tvStartDate, tvStartTime, tvEndDate, tvEndTime;
+    private Button btnQuery, btnReset;
+    private List<HeartRateEntry> allData; // 存储所有数据，用于查询过滤
+    
+    // 日期和时间选择器相关变量
+    private Calendar startCalendar = Calendar.getInstance();
+    private Calendar endCalendar = Calendar.getInstance();
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
     private final SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
@@ -65,12 +84,30 @@ public class HeartRateFragment extends Fragment {
         tvMinHr = root.findViewById(R.id.tv_min_hr);
         tvMaxSteps = root.findViewById(R.id.tv_max_steps);
         tvMinSteps = root.findViewById(R.id.tv_min_steps);
+        
+        // 初始化时间查询控件
+        tvStartDate = root.findViewById(R.id.tv_start_date);
+        tvStartTime = root.findViewById(R.id.tv_start_time);
+        tvEndDate = root.findViewById(R.id.tv_end_date);
+        tvEndTime = root.findViewById(R.id.tv_end_time);
+        btnQuery = root.findViewById(R.id.btn_query);
+        btnReset = root.findViewById(R.id.btn_reset);
 
         dataManager = new DataManager(requireContext());
         btnUpload = root.findViewById(R.id.btn_upload_csv);
         lineChart = root.findViewById(R.id.line_chart);
 
         btnUpload.setOnClickListener(v -> csvPickerLauncher.launch("*/*"));
+        
+        // 设置时间查询按钮点击事件
+        btnQuery.setOnClickListener(v -> queryDataByTimeRange());
+        btnReset.setOnClickListener(v -> resetTimeFilter());
+        
+        // 设置日期和时间选择器的点击事件
+        tvStartDate.setOnClickListener(v -> showStartDatePicker());
+        tvStartTime.setOnClickListener(v -> showStartTimePicker());
+        tvEndDate.setOnClickListener(v -> showEndDatePicker());
+        tvEndTime.setOnClickListener(v -> showEndTimePicker());
 
         loadSavedData();
         return root;
@@ -79,9 +116,9 @@ public class HeartRateFragment extends Fragment {
     private void loadSavedData() {
         User currentUser = dataManager.getCurrentUser();
         if (currentUser != null) {
-            List<HeartRateEntry> savedData = dataManager.getHeartRateData(currentUser.getUsername());
-            if (!savedData.isEmpty()) {
-                renderChart(savedData);
+            allData = dataManager.getHeartRateData(currentUser.getUsername());
+            if (!allData.isEmpty()) {
+                renderChart(allData);
             }
         }
     }
@@ -105,10 +142,10 @@ public class HeartRateFragment extends Fragment {
                 dataManager.checkAndGenerateAlerts(currentUser.getUsername(), data);
                 Toast.makeText(requireContext(), "数据已保存，预警检测完成", Toast.LENGTH_SHORT).show();
                 // 将合并后的全量数据加载到图表
-                data = dataManager.getHeartRateData(currentUser.getUsername());
-            }
+            allData = dataManager.getHeartRateData(currentUser.getUsername());
+        }
 
-            renderChart(data);
+        renderChart(allData);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -127,23 +164,29 @@ public class HeartRateFragment extends Fragment {
         }
 
         LineDataSet hrSet = new LineDataSet(hrEntries, "心率");
-        hrSet.setColor(Color.RED);
-        hrSet.setCircleColor(Color.RED);
+        hrSet.setColor(Color.parseColor("#FF6B6B"));
+        hrSet.setCircleColor(Color.parseColor("#FF6B6B"));
         hrSet.setLineWidth(2.5f);
         hrSet.setCircleRadius(3f);
         hrSet.setDrawValues(false);
         hrSet.setDrawCircles(true);
         hrSet.setMode(LineDataSet.Mode.LINEAR);
-
+        hrSet.setDrawFilled(true);
+        hrSet.setFillColor(Color.parseColor("#33FF6B6B"));
+        hrSet.setFillAlpha(30);
+        
         LineDataSet stepSet = new LineDataSet(stepEntries, "步频");
-        stepSet.setColor(Color.BLUE);
-        stepSet.setCircleColor(Color.BLUE);
+        stepSet.setColor(Color.parseColor("#4ECDC4"));
+        stepSet.setCircleColor(Color.parseColor("#4ECDC4"));
         stepSet.setLineWidth(2.0f);
         stepSet.setCircleRadius(2.5f);
         stepSet.setDrawValues(false);
         stepSet.setDrawCircles(true);
         stepSet.setMode(LineDataSet.Mode.LINEAR);
         stepSet.setAxisDependency(YAxis.AxisDependency.RIGHT);
+        stepSet.setDrawFilled(true);
+        stepSet.setFillColor(Color.parseColor("#334ECDC4"));
+        stepSet.setFillAlpha(30);
 
         ArrayList<ILineDataSet> dataSets = new ArrayList<>();
         dataSets.add(hrSet);
@@ -158,8 +201,9 @@ public class HeartRateFragment extends Fragment {
         xAxis.setGranularity(1f);
         // 限制最多6个标签并自动调整，过多则旋转防止拥挤
         xAxis.setLabelCount(Math.min(data.size(), 6), true);
-        xAxis.setDrawGridLines(false);
-        xAxis.setTextColor(Color.BLACK);
+        xAxis.setDrawGridLines(true);
+        xAxis.setGridColor(Color.parseColor("#EEEEEE"));
+        xAxis.setTextColor(Color.parseColor("#666666"));
         xAxis.setAvoidFirstLastClipping(true);
         xAxis.setLabelRotationAngle(45f);
         xAxis.setValueFormatter(new ValueFormatter() {
@@ -214,7 +258,8 @@ public class HeartRateFragment extends Fragment {
         leftAxis.setSpaceTop(15f);
         leftAxis.setSpaceBottom(15f);
         leftAxis.setDrawGridLines(true);
-        leftAxis.setTextColor(Color.DKGRAY);
+        leftAxis.setGridColor(Color.parseColor("#EEEEEE"));
+        leftAxis.setTextColor(Color.parseColor("#FF6B6B"));
         leftAxis.setGranularity(1f);
 
         lineChart.getAxisRight().setEnabled(true);
@@ -226,6 +271,9 @@ public class HeartRateFragment extends Fragment {
         lineChart.setVisibleXRangeMaximum(30f);
         // 避免底部被按钮遮挡
         lineChart.setExtraBottomOffset(40f);
+        // 设置图表背景
+        lineChart.setBackgroundColor(Color.parseColor("#FAFAFA"));
+        lineChart.setDrawGridBackground(false);
 
         CustomMarkerView mv = new CustomMarkerView(requireContext(), R.layout.layout_marker, data);
         mv.setChartView(lineChart);
@@ -234,6 +282,10 @@ public class HeartRateFragment extends Fragment {
         lineChart.notifyDataSetChanged();
         lineChart.invalidate();
         lineChart.moveViewToX(0);
+        // 添加动画效果
+        lineChart.animateX(1000);
+        // 添加动画效果
+        lineChart.animateX(1000);
     }
 
     private void updateStatistics(List<HeartRateEntry> data) {
@@ -271,5 +323,156 @@ public class HeartRateFragment extends Fragment {
         tvMinHr.setText(String.valueOf(min));
         tvMaxSteps.setText(String.valueOf(maxStep));
         tvMinSteps.setText(String.valueOf(minStep));
+    }
+    
+    /**
+     * 根据时间区间查询数据
+     */
+    private void queryDataByTimeRange() {
+        if (allData == null || allData.isEmpty()) {
+            Toast.makeText(requireContext(), "没有可查询的数据", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String startDateStr = tvStartDate.getText().toString().trim();
+        String startTimeStr = tvStartTime.getText().toString().trim();
+        String endDateStr = tvEndDate.getText().toString().trim();
+        String endTimeStr = tvEndTime.getText().toString().trim();
+        
+        // 验证输入
+        if (startDateStr.isEmpty() || startTimeStr.isEmpty() || endDateStr.isEmpty() || endTimeStr.isEmpty()) {
+            Toast.makeText(requireContext(), "请选择完整的时间区间", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        try {
+            // 构建开始和结束时间
+            String startDateTime = startDateStr + " " + startTimeStr + ":00";
+            String endDateTime = endDateStr + " " + endTimeStr + ":00";
+            
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            Date startDate = sdf.parse(startDateTime);
+            Date endDate = sdf.parse(endDateTime);
+            
+            if (startDate == null || endDate == null) {
+                Toast.makeText(requireContext(), "时间格式不正确", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            if (startDate.after(endDate)) {
+                Toast.makeText(requireContext(), "开始时间不能晚于结束时间", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // 过滤数据
+            List<HeartRateEntry> filteredData = new ArrayList<>();
+            for (HeartRateEntry entry : allData) {
+                try {
+                    Date entryDate = sdf.parse(entry.getTimestamp());
+                    if (entryDate != null && !entryDate.before(startDate) && !entryDate.after(endDate)) {
+                        filteredData.add(entry);
+                    }
+                } catch (ParseException e) {
+                    // 跳过格式不正确的条目
+                }
+            }
+            
+            if (filteredData.isEmpty()) {
+                Toast.makeText(requireContext(), "所选时间区间内没有数据", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), "查询到 " + filteredData.size() + " 条数据", Toast.LENGTH_SHORT).show();
+            }
+            
+            // 更新图表
+            renderChart(filteredData);
+            
+        } catch (ParseException e) {
+            Toast.makeText(requireContext(), "时间格式不正确", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    /**
+     * 重置时间过滤器，显示所有数据
+     */
+    private void resetTimeFilter() {
+        tvStartDate.setText("");
+        tvStartTime.setText("");
+        tvEndDate.setText("");
+        tvEndTime.setText("");
+        
+        if (allData != null && !allData.isEmpty()) {
+            renderChart(allData);
+            Toast.makeText(requireContext(), "已重置，显示所有数据", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    /**
+     * 显示开始日期选择器
+     */
+    private void showStartDatePicker() {
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    startCalendar.set(Calendar.YEAR, year);
+                    startCalendar.set(Calendar.MONTH, month);
+                    startCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    tvStartDate.setText(dateFormat.format(startCalendar.getTime()));
+                },
+                startCalendar.get(Calendar.YEAR),
+                startCalendar.get(Calendar.MONTH),
+                startCalendar.get(Calendar.DAY_OF_MONTH));
+        datePickerDialog.show();
+    }
+    
+    /**
+     * 显示开始时间选择器
+     */
+    private void showStartTimePicker() {
+        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                requireContext(),
+                (view, hourOfDay, minute) -> {
+                    startCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    startCalendar.set(Calendar.MINUTE, minute);
+                    tvStartTime.setText(timeFormat.format(startCalendar.getTime()));
+                },
+                startCalendar.get(Calendar.HOUR_OF_DAY),
+                startCalendar.get(Calendar.MINUTE),
+                true); // 24小时制
+        timePickerDialog.show();
+    }
+    
+    /**
+     * 显示结束日期选择器
+     */
+    private void showEndDatePicker() {
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    endCalendar.set(Calendar.YEAR, year);
+                    endCalendar.set(Calendar.MONTH, month);
+                    endCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    tvEndDate.setText(dateFormat.format(endCalendar.getTime()));
+                },
+                endCalendar.get(Calendar.YEAR),
+                endCalendar.get(Calendar.MONTH),
+                endCalendar.get(Calendar.DAY_OF_MONTH));
+        datePickerDialog.show();
+    }
+    
+    /**
+     * 显示结束时间选择器
+     */
+    private void showEndTimePicker() {
+        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                requireContext(),
+                (view, hourOfDay, minute) -> {
+                    endCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                    endCalendar.set(Calendar.MINUTE, minute);
+                    tvEndTime.setText(timeFormat.format(endCalendar.getTime()));
+                },
+                endCalendar.get(Calendar.HOUR_OF_DAY),
+                endCalendar.get(Calendar.MINUTE),
+                true); // 24小时制
+        timePickerDialog.show();
     }
 }
