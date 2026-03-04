@@ -44,7 +44,7 @@ public class HeartRateFragment extends Fragment {
     private Button btnUpload;
     private LineChart lineChart;
     private TextView tvAvgHr, tvMaxHr, tvMinHr;
-    private TextView tvAvgSteps, tvMaxSteps, tvMinSteps; // 步频统计
+    private TextView tvMaxSteps, tvMinSteps; // 步频统计（只保留最高和最低）
 
     private final SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
@@ -63,7 +63,6 @@ public class HeartRateFragment extends Fragment {
         tvAvgHr = root.findViewById(R.id.tv_avg_hr);
         tvMaxHr = root.findViewById(R.id.tv_max_hr);
         tvMinHr = root.findViewById(R.id.tv_min_hr);
-        tvAvgSteps = root.findViewById(R.id.tv_avg_steps);
         tvMaxSteps = root.findViewById(R.id.tv_max_steps);
         tvMinSteps = root.findViewById(R.id.tv_min_steps);
 
@@ -242,7 +241,6 @@ public class HeartRateFragment extends Fragment {
             tvAvgHr.setText("--");
             tvMaxHr.setText("--");
             tvMinHr.setText("--");
-            tvAvgSteps.setText("--");
             tvMaxSteps.setText("--");
             tvMinSteps.setText("--");
             return;
@@ -254,7 +252,6 @@ public class HeartRateFragment extends Fragment {
 
         int minStep = Integer.MAX_VALUE;
         int maxStep = Integer.MIN_VALUE;
-        long sumStep = 0;
 
         for (HeartRateEntry entry : data) {
             int bpm = entry.getBpm();
@@ -264,17 +261,14 @@ public class HeartRateFragment extends Fragment {
 
             int sf = entry.getStepFrequency();
             if (sf < 0) sf = 0; // 不能小于零
-            sumStep += sf;
             if (sf < minStep) minStep = sf;
             if (sf > maxStep) maxStep = sf;
         }
 
         double avg = (double) sum / data.size();
-        double avgStep = (double) sumStep / data.size();
         tvAvgHr.setText(String.format("%.1f", avg));
         tvMaxHr.setText(String.valueOf(max));
         tvMinHr.setText(String.valueOf(min));
-        tvAvgSteps.setText(String.format("%.1f", avgStep));
         tvMaxSteps.setText(String.valueOf(maxStep));
         tvMinSteps.setText(String.valueOf(minStep));
     }
