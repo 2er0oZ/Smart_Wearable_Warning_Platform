@@ -189,6 +189,69 @@ public class DataManager {
         // 全局阈值（心率） + 默认步频
         return new StudentThreshold(getMinThreshold(), getMaxThreshold());
     }
+    
+    /**
+     * 获取学生预警阈值设置
+     */
+    public StudentThreshold getStudentThreshold(String username) {
+        return getThresholdForUser(username);
+    }
+    
+    /**
+     * 获取睡眠时间区间内的心率数据
+     */
+    public List<HeartRateEntry> getSleepTimeHeartRateData(String username) {
+        List<HeartRateEntry> allData = getHeartRateData(username);
+        List<HeartRateEntry> sleepData = new ArrayList<>();
+        
+        if (allData == null || allData.isEmpty()) {
+            return sleepData;
+        }
+        
+        StudentThreshold threshold = getThresholdForUser(username);
+        
+        // 获取睡眠时间区间
+        String sleepStartTime = threshold.getSleepStartTime();
+        String sleepEndTime = threshold.getSleepEndTime();
+        
+        if (sleepStartTime == null || sleepEndTime == null) {
+            return sleepData; // 未设置睡眠时间
+        }
+        
+        try {
+            // 解析睡眠时间区间
+            String[] sleepStartParts = sleepStartTime.split(":");
+            int sleepStartHour = Integer.parseInt(sleepStartParts[0]);
+            int sleepStartMinute = Integer.parseInt(sleepStartParts[1]);
+            
+            String[] sleepEndParts = sleepEndTime.split(":");
+            int sleepEndHour = Integer.parseInt(sleepEndParts[0]);
+            int sleepEndMinute = Integer.parseInt(sleepEndParts[1]);
+            
+            for (HeartRateEntry entry : allData) {
+                String timestamp = entry.getTimestamp();
+                String[] dateTimeParts = timestamp.split(" ");
+                if (dateTimeParts.length < 2) continue;
+                
+                String[] timeParts = dateTimeParts[1].split(":");
+                if (timeParts.length < 2) continue;
+                
+                int hour = Integer.parseInt(timeParts[0]);
+                int minute = Integer.parseInt(timeParts[1]);
+                
+                // 检查是否在睡眠时间区间内
+                boolean isInSleepRange = isInTimeRange(hour, minute, sleepStartHour, sleepStartMinute, sleepEndHour, sleepEndMinute);
+                
+                if (isInSleepRange) {
+                    sleepData.add(entry);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return sleepData;
+    }
 
     // --- CSV 数据处理 (核心逻辑) ---
 

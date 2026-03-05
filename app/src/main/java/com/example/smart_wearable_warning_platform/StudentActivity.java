@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.smart_wearable_warning_platform.fragment.HeartRateFragment;
 import com.example.smart_wearable_warning_platform.fragment.ProfileFragment;
+import com.example.smart_wearable_warning_platform.fragment.SleepAdviceFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class StudentActivity extends AppCompatActivity {
@@ -21,6 +22,12 @@ public class StudentActivity extends AppCompatActivity {
                     getSupportFragmentManager()
                             .beginTransaction()
                             .replace(R.id.nav_host_fragment, new ProfileFragment())
+                            .commit();
+                    return true;
+                case R.id.nav_sleep:
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.nav_host_fragment, new SleepAdviceFragment())
                             .commit();
                     return true;
                 case R.id.nav_chart:
