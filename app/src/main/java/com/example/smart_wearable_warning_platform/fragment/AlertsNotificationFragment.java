@@ -5,6 +5,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +27,7 @@ public class AlertsNotificationFragment extends Fragment {
 
     private RecyclerView recyclerAlerts;
     private Button btnLoadMore;
+    private LinearLayout layoutNoAlerts;
     private DataManager dataManager;
     private AlertAdapter adapter;
 
@@ -41,6 +44,7 @@ public class AlertsNotificationFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_admin_alerts, container, false);
         recyclerAlerts = root.findViewById(R.id.recycler_alerts);
         btnLoadMore = root.findViewById(R.id.btn_load_more);
+        layoutNoAlerts = root.findViewById(R.id.layout_no_alerts);
 
         dataManager = new DataManager(requireContext());
         recyclerAlerts.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -75,9 +79,19 @@ public class AlertsNotificationFragment extends Fragment {
         int end = Math.min(pageSize, allGroups.size());
         for (int i = 0; i < end; i++) shownGroups.add(allGroups.get(i));
 
-        groupedAdapter = new GroupedAlertAdapter(shownGroups);
-        recyclerAlerts.setAdapter(groupedAdapter);
-        btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
+        // 根据是否有预警信息显示不同的UI
+        if (allGroups.isEmpty()) {
+            recyclerAlerts.setVisibility(View.GONE);
+            btnLoadMore.setVisibility(View.GONE);
+            layoutNoAlerts.setVisibility(View.VISIBLE);
+        } else {
+            recyclerAlerts.setVisibility(View.VISIBLE);
+            layoutNoAlerts.setVisibility(View.GONE);
+            
+            groupedAdapter = new GroupedAlertAdapter(shownGroups);
+            recyclerAlerts.setAdapter(groupedAdapter);
+            btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void loadMore() {
