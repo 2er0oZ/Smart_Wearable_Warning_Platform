@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -483,13 +484,45 @@ public class SleepAdviceFragment extends Fragment {
      * 更新睡眠趋势图表
      */
     private void updateSleepTrendChart(List<SleepData> sleepDataList) {
-        // 只显示最近7天的数据
-        int daysToShow = Math.min(7, sleepDataList.size());
-        List<SleepData> recentData = sleepDataList.subList(sleepDataList.size() - daysToShow, sleepDataList.size());
+        // 创建最近7天的日期列表
+        List<String> last7Days = new ArrayList<>();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
         
+        // 从今天开始，往前推7天
+        for (int i = 6; i >= 0; i--) {
+            calendar.setTime(new Date());
+            calendar.add(Calendar.DAY_OF_MONTH, -i);
+            last7Days.add(dateFormat.format(calendar.getTime()));
+        }
+        
+        // 创建一个日期到睡眠数据的映射
+        Map<String, SleepData> dataByDate = new HashMap<>();
+        for (SleepData sleepData : sleepDataList) {
+            dataByDate.put(sleepData.getDate(), sleepData);
+        }
+        
+        // 创建图表数据点，确保每天都有数据，没有数据的日期使用默认值
         List<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < recentData.size(); i++) {
-            entries.add(new Entry(i, recentData.get(i).getQuality()));
+        List<SleepData> chartData = new ArrayList<>();
+        
+        for (int i = 0; i < last7Days.size(); i++) {
+            String date = last7Days.get(i);
+            SleepData sleepData = dataByDate.get(date);
+            
+            if (sleepData != null) {
+                // 有数据的日期，使用实际数据
+                entries.add(new Entry(i, sleepData.getQuality()));
+                chartData.add(sleepData);
+            } else {
+                // 没有数据的日期，使用默认值50（中等睡眠质量）
+                entries.add(new Entry(i, 50));
+                // 创建一个虚拟的SleepData对象用于显示日期
+                SleepData dummyData = new SleepData();
+                dummyData.setDate(date);
+                dummyData.setQuality(50);
+                chartData.add(dummyData);
+            }
         }
         
         LineDataSet dataSet = new LineDataSet(entries, "睡眠质量");
@@ -510,15 +543,15 @@ public class SleepAdviceFragment extends Fragment {
         XAxis xAxis = chartSleepTrend.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setLabelCount(daysToShow);
+        xAxis.setLabelCount(7);
         xAxis.setDrawGridLines(false);
         xAxis.setTextColor(Color.parseColor("#666666"));
         xAxis.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 int index = (int) value;
-                if (index >= 0 && index < recentData.size()) {
-                    String date = recentData.get(index).getDate();
+                if (index >= 0 && index < chartData.size()) {
+                    String date = chartData.get(index).getDate();
                     return date.substring(5); // 只显示月-日
                 }
                 return "";
