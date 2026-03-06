@@ -3,6 +3,7 @@ package com.example.smart_wearable_warning_platform.model;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.example.smart_wearable_warning_platform.service.HeartRateService;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -29,10 +30,12 @@ public class DataManager {
 
     private SharedPreferences prefs;
     private Gson gson;
+    private HeartRateService heartRateService;
 
     public DataManager(Context context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         gson = new Gson();
+        heartRateService = new HeartRateService();
     }
 
     // --- 用户管理 ---
@@ -451,50 +454,29 @@ public class DataManager {
         
         // 读取时使用 KEY_ALERTS (常量 "alerts_list")
         List<HealthAlert> allAlerts = getAllAlerts();
-        // 对于指定的 username，优先使用该学生自定义阈值
-        StudentThreshold thForUser = getThresholdForUser(username);
-        int minThreshold = thForUser.getMinHr();
-        int maxThreshold = thForUser.getMaxHr();
-        int minStep = thForUser.getMinStep();
-        int maxStep = thForUser.getMaxStep();
-
-        boolean hasNewAlerts = false;
-
-        for (HeartRateEntry entry : averagedEntries) {
-            int bpm = entry.getBpm();
-            int stepFreq = entry.getStepFrequency();
-            String timestamp = entry.getTimestamp();
-
-            // 先删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
+        
+        // 获取学生阈值设置
+        StudentThreshold threshold = getThresholdForUser(username);
+        if (threshold == null) {
+            threshold = new StudentThreshold(); // 使用默认值
+        }
+        
+        // 使用服务层检查并生成预警
+        List<HealthAlert> newAlerts = heartRateService.checkAndGenerateAlerts(username, averagedEntries, threshold);
+        
+        // 删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
+        for (HealthAlert newAlert : newAlerts) {
             for (int i = allAlerts.size() - 1; i >= 0; --i) {
                 HealthAlert existing = allAlerts.get(i);
-                if (existing.getStudentName().equals(username) && existing.getTimestamp().equals(timestamp)) {
+                if (existing.getStudentName().equals(username) && existing.getTimestamp().equals(newAlert.getTimestamp())) {
                     allAlerts.remove(i);
                 }
             }
-
-            // 检查是否在睡眠时间预警区间内
-            boolean isInSleepTime = isInSleepTimeRange(timestamp, thForUser);
-            
-            boolean hrBad = bpm < minThreshold || bpm > maxThreshold;
-            boolean stepBad = stepFreq < minStep || stepFreq > maxStep;
-            
-            // 修改预警条件：在睡眠时间预警区间内，同时检测心率与步频都不符合阈值时才发送预警通知
-            if (isInSleepTime && hrBad && stepBad) {
-                String type = (bpm < minThreshold) ? "睡眠时间心率过低" : "睡眠时间心率过高";
-                HealthAlert alert = new HealthAlert();
-                alert.setStudentName(username);
-                alert.setTimestamp(timestamp);
-                alert.setBpm(bpm);
-                alert.setStepFreq(stepFreq);
-                alert.setMessage(type);
-                alert.setStep(true); // 标记为睡眠时间预警
-                allAlerts.add(alert);
-                hasNewAlerts = true;
-            }
+            allAlerts.add(newAlert);
         }
-
-        if (hasNewAlerts) {
+        
+        // 保存预警
+        if (!newAlerts.isEmpty()) {
             saveAlerts(allAlerts);
         }
     }
@@ -506,43 +488,16 @@ public class DataManager {
     public void rebuildAlertsFromSavedData() {
         List<HealthAlert> newAlerts = new ArrayList<>();
         List<User> users = getAllUsers();
+        
         for (User u : users) {
             String username = u.getUsername();
-            StudentThreshold th = getThresholdForUser(username);
-            int minThresholdForUser = th.getMinHr();
-            int maxThresholdForUser = th.getMaxHr();
-            int minStepForUser = th.getMinStep();
-            int maxStepForUser = th.getMaxStep();
+            StudentThreshold threshold = getThresholdForUser(username);
             List<HeartRateEntry> data = getHeartRateData(username);
-            for (HeartRateEntry entry : data) {
-                int bpm = entry.getBpm();
-                int stepFreq = entry.getStepFrequency();
-                String timestamp = entry.getTimestamp();
-                
-                // 检查是否在睡眠时间预警区间内
-                boolean isInSleepTime = isInSleepTimeRange(timestamp, th);
-                
-                boolean hrBad = bpm < minThresholdForUser || bpm > maxThresholdForUser;
-                boolean stepBad = stepFreq < minStepForUser || stepFreq > maxStepForUser;
-                
-                // 修改预警条件：在睡眠时间预警区间内，同时检测心率与步频都不符合阈值时才发送预警通知
-                if (isInSleepTime && hrBad && stepBad) {
-                    String msg;
-                    if (bpm < minThresholdForUser) {
-                        msg = "睡眠时间心率过低：" + bpm + " bpm（阈值：" + minThresholdForUser + "）（步频：" + stepFreq + ")";
-                    } else {
-                        msg = "睡眠时间心率过高：" + bpm + " bpm（阈值：" + maxThresholdForUser + "）（步频：" + stepFreq + ")";
-                    }
-                    HealthAlert alert = new HealthAlert();
-                    alert.setStudentName(username);
-                    alert.setTimestamp(timestamp);
-                    alert.setBpm(bpm);
-                    alert.setStepFreq(stepFreq);
-                    alert.setMessage(msg);
-                    alert.setStep(true); // 标记为睡眠时间预警
-                    newAlerts.add(alert);
-                }
-            }
+            
+            // 使用服务层检查并生成预警
+            List<HealthAlert> userAlerts = heartRateService.checkAndGenerateAlerts(username, data, threshold);
+            newAlerts.addAll(userAlerts);
+
         }
 
         // 存储新的预警列表（覆盖原有）

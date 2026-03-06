@@ -17,19 +17,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.adapter.AlertAdapter;
 import com.example.smart_wearable_warning_platform.adapter.GroupedAlertAdapter;
+import com.example.smart_wearable_warning_platform.controller.AlertsNotificationController;
 import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.HealthAlert;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AlertsNotificationFragment extends Fragment {
+public class AlertsNotificationFragment extends Fragment implements AlertsNotificationController.View {
 
+    private AlertsNotificationController controller;
     private RecyclerView recyclerAlerts;
     private Button btnLoadMore;
     private LinearLayout layoutNoAlerts;
-    private DataManager dataManager;
-    private AlertAdapter adapter;
 
     private List<HealthAlert> allAlerts = new ArrayList<>();
     // 分组数据
@@ -46,59 +46,52 @@ public class AlertsNotificationFragment extends Fragment {
         btnLoadMore = root.findViewById(R.id.btn_load_more);
         layoutNoAlerts = root.findViewById(R.id.layout_no_alerts);
 
-        dataManager = new DataManager(requireContext());
+        controller = new AlertsNotificationController(this, requireContext());
         recyclerAlerts.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        loadAllAlerts();
+        controller.loadAllAlerts();
 
-        btnLoadMore.setOnClickListener(v -> loadMore());
+        btnLoadMore.setOnClickListener(v -> controller.loadMore());
 
         return root;
     }
 
-    private void loadAllAlerts() {
-        allAlerts = dataManager.getAllAlerts();
-        // 聚合为按学生分组
-        java.util.LinkedHashMap<String, GroupedAlertAdapter.Group> map = new java.util.LinkedHashMap<>();
-        for (HealthAlert a : allAlerts) {
-            String name = a.getStudentName();
-            if (name == null) name = "未知";
-            GroupedAlertAdapter.Group g = map.get(name);
-            if (g == null) {
-                g = new GroupedAlertAdapter.Group();
-                g.studentName = name;
-                map.put(name, g);
-            }
-            g.alerts.add(a);
-        }
-        allGroups.clear();
-        allGroups.addAll(map.values());
-
-        // 初始化显示第一页分组
-        shownGroups.clear();
-        int end = Math.min(pageSize, allGroups.size());
-        for (int i = 0; i < end; i++) shownGroups.add(allGroups.get(i));
-
+    // 实现View接口方法
+    @Override
+    public void showAlerts(List<GroupedAlertAdapter.Group> groups) {
         // 根据是否有预警信息显示不同的UI
-        if (allGroups.isEmpty()) {
+        if (groups.isEmpty()) {
             recyclerAlerts.setVisibility(View.GONE);
             btnLoadMore.setVisibility(View.GONE);
-            layoutNoAlerts.setVisibility(View.VISIBLE);
+            // 显示"暂无预警信息"提示
+            if (layoutNoAlerts != null) {
+                layoutNoAlerts.setVisibility(View.VISIBLE);
+            }
         } else {
             recyclerAlerts.setVisibility(View.VISIBLE);
-            layoutNoAlerts.setVisibility(View.GONE);
-            
-            groupedAdapter = new GroupedAlertAdapter(shownGroups);
-            recyclerAlerts.setAdapter(groupedAdapter);
-            btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
+            // 隐藏"暂无预警信息"提示
+            if (layoutNoAlerts != null) {
+                layoutNoAlerts.setVisibility(View.GONE);
+            }
+        }
+    }
+    
+    @Override
+    public void showLoadMoreButton(boolean show) {
+        btnLoadMore.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+    
+    @Override
+    public void updateAdapter(GroupedAlertAdapter adapter) {
+        recyclerAlerts.setAdapter(adapter);
+    }
+    
+    @Override
+    public void notifyDataSetChanged() {
+        if (recyclerAlerts.getAdapter() != null) {
+            recyclerAlerts.getAdapter().notifyDataSetChanged();
         }
     }
 
-    private void loadMore() {
-        int current = shownGroups.size();
-        int end = Math.min(current + pageSize, allGroups.size());
-        for (int i = current; i < end; i++) shownGroups.add(allGroups.get(i));
-        groupedAdapter.notifyDataSetChanged();
-        btnLoadMore.setVisibility(allGroups.size() > shownGroups.size() ? View.VISIBLE : View.GONE);
-    }
+
 }
