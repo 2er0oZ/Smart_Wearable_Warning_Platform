@@ -225,7 +225,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="昨晚入睡时间"
+                            android:text="入睡时间"
                             android:textColor="#666666"
                             android:textSize="12sp" />
 
@@ -248,7 +248,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="昨晚起床时间"
+                            android:text="起床时间"
                             android:textColor="#666666"
                             android:textSize="12sp" />
 
@@ -278,7 +278,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="昨晚睡眠时长"
+                            android:text="睡眠时长"
                             android:textColor="#666666"
                             android:textSize="12sp" />
 

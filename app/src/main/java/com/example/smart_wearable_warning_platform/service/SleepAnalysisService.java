@@ -145,6 +145,36 @@ public class SleepAnalysisService {
             }
             long durationMinutes = durationMs / (1000 * 60);
             sleepData.setDuration(durationMinutes);
+            
+            // 检查逻辑是否合理：睡眠时长应该在合理范围内（3-12小时）
+            if (durationMinutes < 180 || durationMinutes > 720) {
+                // 如果睡眠时长不合理，可能是计算错误，使用简单方法
+                // 使用第一个数据点作为入睡时间，最后一个数据点作为起床时间
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                    sleepTime = dateFormat.parse(sleepPeriodData.get(0).getTimestamp());
+                    wakeTime = dateFormat.parse(sleepPeriodData.get(sleepPeriodData.size() - 1).getTimestamp());
+                    
+                    // 重新计算时长
+                    durationMs = wakeTime.getTime() - sleepTime.getTime();
+                    if (durationMs < 0) {
+                        durationMs += 24 * 60 * 60 * 1000;
+                    }
+                    durationMinutes = durationMs / (1000 * 60);
+                    
+                    // 确保时长在合理范围内
+                    if (durationMinutes > 720) {
+                        durationMinutes = 480; // 默认8小时
+                    }
+                    
+                    sleepData.setSleepTime(sleepTime);
+                    sleepData.setWakeTime(wakeTime);
+                    sleepData.setDuration(durationMinutes);
+                } catch (ParseException e) {
+                    // 解析失败，使用默认值
+                    sleepData.setDuration(480); // 默认8小时
+                }
+            }
         }
         
         // 计算睡眠质量
@@ -162,11 +192,45 @@ public class SleepAnalysisService {
             return null;
         }
         
-        // 找出心率开始降低的时间点作为入睡时间
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         
         try {
-            // 返回第一个数据点的时间作为入睡时间
+            // 计算平均心率和步频
+            double totalHeartRate = 0;
+            double totalStepFreq = 0;
+            for (HeartRateEntry entry : sleepPeriodData) {
+                totalHeartRate += entry.getBpm();
+                totalStepFreq += entry.getStepFrequency();
+            }
+            double avgHeartRate = totalHeartRate / sleepPeriodData.size();
+            double avgStepFreq = totalStepFreq / sleepPeriodData.size();
+            
+            // 找出心率和步频同时稳定在平均值以下的时间点作为入睡时间
+            for (int i = 0; i < sleepPeriodData.size(); i++) {
+                HeartRateEntry entry = sleepPeriodData.get(i);
+                // 如果当前心率低于平均心率，且步频也低于平均值，则可能是入睡时间
+                boolean heartRateLow = entry.getBpm() < avgHeartRate * 0.9;
+                boolean stepFreqLow = entry.getStepFrequency() < avgStepFreq * 0.9;
+                
+                if (heartRateLow && stepFreqLow) {
+                    // 检查后续几个数据点是否也保持较低水平
+                    boolean isStable = true;
+                    for (int j = i; j < Math.min(i + 3, sleepPeriodData.size()); j++) {
+                        HeartRateEntry nextEntry = sleepPeriodData.get(j);
+                        if (nextEntry.getBpm() > avgHeartRate * 0.95 || 
+                            nextEntry.getStepFrequency() > avgStepFreq * 0.95) {
+                            isStable = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isStable) {
+                        return dateFormat.parse(entry.getTimestamp());
+                    }
+                }
+            }
+            
+            // 如果找不到符合条件的时间点，返回第一个数据点的时间
             return dateFormat.parse(sleepPeriodData.get(0).getTimestamp());
         } catch (ParseException e) {
             return null;
@@ -184,7 +248,42 @@ public class SleepAnalysisService {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         
         try {
-            // 返回最后一个数据点的时间作为起床时间
+            // 计算平均心率和步频
+            double totalHeartRate = 0;
+            double totalStepFreq = 0;
+            for (HeartRateEntry entry : sleepPeriodData) {
+                totalHeartRate += entry.getBpm();
+                totalStepFreq += entry.getStepFrequency();
+            }
+            double avgHeartRate = totalHeartRate / sleepPeriodData.size();
+            double avgStepFreq = totalStepFreq / sleepPeriodData.size();
+            
+            // 从后往前找，找出心率和步频同时显著升高的时间点作为起床时间
+            for (int i = sleepPeriodData.size() - 1; i >= 0; i--) {
+                HeartRateEntry entry = sleepPeriodData.get(i);
+                // 如果当前心率和步频都高于平均值，则可能是起床时间
+                boolean heartRateHigh = entry.getBpm() > avgHeartRate * 1.1;
+                boolean stepFreqHigh = entry.getStepFrequency() > avgStepFreq * 1.1;
+                
+                if (heartRateHigh && stepFreqHigh) {
+                    // 检查前几个数据点是否也保持较高水平
+                    boolean isStable = true;
+                    for (int j = Math.max(0, i - 3); j <= i; j++) {
+                        HeartRateEntry checkEntry = sleepPeriodData.get(j);
+                        if (checkEntry.getBpm() < avgHeartRate * 1.05 || 
+                            checkEntry.getStepFrequency() < avgStepFreq * 1.05) {
+                            isStable = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isStable) {
+                        return dateFormat.parse(entry.getTimestamp());
+                    }
+                }
+            }
+            
+            // 如果找不到符合条件的时间点，返回最后一个数据点的时间
             return dateFormat.parse(sleepPeriodData.get(sleepPeriodData.size() - 1).getTimestamp());
         } catch (ParseException e) {
             return null;
