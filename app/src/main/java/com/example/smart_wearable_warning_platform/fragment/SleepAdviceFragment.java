@@ -169,13 +169,10 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         // 使用Controller准备图表数据
         List<SleepData> chartData = controller.prepareChartData(data);
         
-        // 只显示最近7天的数据
-        int daysToShow = Math.min(7, chartData.size());
-        List<SleepData> recentData = chartData.subList(chartData.size() - daysToShow, chartData.size());
-        
+        // 显示所有睡眠数据
         List<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < recentData.size(); i++) {
-            entries.add(new Entry(i, recentData.get(i).getQuality()));
+        for (int i = 0; i < chartData.size(); i++) {
+            entries.add(new Entry(i, chartData.get(i).getQuality()));
         }
         
         LineDataSet dataSet = new LineDataSet(entries, "睡眠质量");
@@ -196,15 +193,15 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         XAxis xAxis = chartSleepTrend.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setLabelCount(daysToShow);
+        xAxis.setLabelCount(Math.min(chartData.size(), 10)); // 最多显示10个标签
         xAxis.setDrawGridLines(false);
         xAxis.setTextColor(Color.parseColor("#666666"));
         xAxis.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 int index = (int) value;
-                if (index >= 0 && index < recentData.size()) {
-                    String date = recentData.get(index).getDate();
+                if (index >= 0 && index < chartData.size()) {
+                    String date = chartData.get(index).getDate();
                     return date.substring(5); // 只显示月-日
                 }
                 return "";
@@ -228,9 +225,19 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         chartSleepTrend.getLegend().setEnabled(false);
         chartSleepTrend.setTouchEnabled(true);
         chartSleepTrend.setPinchZoom(true);
-        chartSleepTrend.setDoubleTapToZoomEnabled(false);
+        chartSleepTrend.setDoubleTapToZoomEnabled(true); // 启用双击缩放
+        chartSleepTrend.setScaleEnabled(true); // 启用缩放
+        chartSleepTrend.setDragEnabled(true); // 启用拖动
         chartSleepTrend.setBackgroundColor(Color.parseColor("#FAFAFA"));
         chartSleepTrend.setDrawGridBackground(false);
+        
+        // 设置可见范围，显示所有数据
+        if (data != null && data.size() > 0) {
+            chartSleepTrend.setVisibleXRangeMaximum(10); // 最多显示10个数据点
+            // 使用moveViewToAnimated方法平滑移动到最后10个数据点
+            float xValue = data.size() > 10 ? data.size() - 10 : 0;
+            chartSleepTrend.moveViewToAnimated(xValue, 0, YAxis.AxisDependency.LEFT, 1000); // 1秒内平滑移动
+        }
         
         // 刷新图表
         chartSleepTrend.notifyDataSetChanged();

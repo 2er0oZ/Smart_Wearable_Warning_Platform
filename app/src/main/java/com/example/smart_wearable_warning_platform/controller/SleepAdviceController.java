@@ -108,34 +108,15 @@ public class SleepAdviceController {
      * 准备睡眠趋势图表数据
      */
     public List<SleepData> prepareChartData(List<SleepData> sleepDataList) {
-        // 创建最近7天的日期列表
-        List<String> last7Days = getLast7Days();
-        
-        // 创建一个日期到睡眠数据的映射
-        Map<String, SleepData> dataByDate = new HashMap<>();
-        for (SleepData sleepData : sleepDataList) {
-            dataByDate.put(sleepData.getDate(), sleepData);
+        // 直接返回所有睡眠数据，按日期排序
+        if (sleepDataList == null || sleepDataList.isEmpty()) {
+            return new ArrayList<>();
         }
         
-        // 创建图表数据点，确保每天都有数据，没有数据的日期使用默认值
-        List<SleepData> chartData = new ArrayList<>();
+        // 按日期排序
+        List<SleepData> sortedData = new ArrayList<>(sleepDataList);
+        sortedData.sort((a, b) -> a.getDate().compareTo(b.getDate()));
         
-        for (int i = 0; i < last7Days.size(); i++) {
-            String date = last7Days.get(i);
-            SleepData sleepData = dataByDate.get(date);
-            
-            if (sleepData != null) {
-                // 有数据的日期，使用实际数据
-                chartData.add(sleepData);
-            } else {
-                // 没有数据的日期，使用默认值50（中等睡眠质量）
-                SleepData dummyData = new SleepData();
-                dummyData.setDate(date);
-                dummyData.setQuality(50);
-                chartData.add(dummyData);
-            }
-        }
-        
-        return chartData;
+        return sortedData;
     }
 }
