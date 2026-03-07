@@ -18,12 +18,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.adapter.SleepAdviceAdapter;
 import com.example.smart_wearable_warning_platform.controller.SleepAdviceController;
-import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.HeartRateEntry;
 import com.example.smart_wearable_warning_platform.model.SleepAdvice;
 import com.example.smart_wearable_warning_platform.model.SleepData;
 import com.example.smart_wearable_warning_platform.model.StudentThreshold;
-import com.example.smart_wearable_warning_platform.model.User;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -36,7 +34,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -147,11 +144,9 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         double avgDuration = totalDuration / data.size();
         tvAvgDuration.setText(String.format("%.1f 小时", avgDuration));
         
-        // 使用服务层计算规律性评分
-        // 注意：这里需要通过Controller获取，因为SleepAnalysisService是Controller的私有成员
-        // 为了简化，我们在这里直接计算
-        // 实际项目中，应该通过Controller提供的方法获取
-        tvRegularityScore.setText("80"); // 示例值
+        // 计算规律性评分
+        int regularityScore = calculateRegularityScore(data);
+        tvRegularityScore.setText(String.valueOf(regularityScore));
     }
     
     @Override
@@ -166,13 +161,13 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateSleepTrendChart(List<SleepData> data) {
-        // 使用Controller准备图表数据
-        List<SleepData> chartData = controller.prepareChartData(data);
+        // 只显示最近7天的数据
+        int daysToShow = Math.min(7, data.size());
+        List<SleepData> recentData = data.subList(data.size() - daysToShow, data.size());
         
-        // 显示所有睡眠数据
         List<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < chartData.size(); i++) {
-            entries.add(new Entry(i, chartData.get(i).getQuality()));
+        for (int i = 0; i < recentData.size(); i++) {
+            entries.add(new Entry(i, recentData.get(i).getQuality()));
         }
         
         LineDataSet dataSet = new LineDataSet(entries, "睡眠质量");
@@ -193,15 +188,15 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         XAxis xAxis = chartSleepTrend.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setLabelCount(Math.min(chartData.size(), 10)); // 最多显示10个标签
+        xAxis.setLabelCount(daysToShow);
         xAxis.setDrawGridLines(false);
         xAxis.setTextColor(Color.parseColor("#666666"));
         xAxis.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 int index = (int) value;
-                if (index >= 0 && index < chartData.size()) {
-                    String date = chartData.get(index).getDate();
+                if (index >= 0 && index < recentData.size()) {
+                    String date = recentData.get(index).getDate();
                     return date.substring(5); // 只显示月-日
                 }
                 return "";
@@ -225,19 +220,11 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         chartSleepTrend.getLegend().setEnabled(false);
         chartSleepTrend.setTouchEnabled(true);
         chartSleepTrend.setPinchZoom(true);
-        chartSleepTrend.setDoubleTapToZoomEnabled(true); // 启用双击缩放
-        chartSleepTrend.setScaleEnabled(true); // 启用缩放
-        chartSleepTrend.setDragEnabled(true); // 启用拖动
+        chartSleepTrend.setDoubleTapToZoomEnabled(true);
+        chartSleepTrend.setScaleEnabled(true);
+        chartSleepTrend.setDragEnabled(true);
         chartSleepTrend.setBackgroundColor(Color.parseColor("#FAFAFA"));
         chartSleepTrend.setDrawGridBackground(false);
-        
-        // 设置可见范围，显示所有数据
-        if (data != null && data.size() > 0) {
-            chartSleepTrend.setVisibleXRangeMaximum(10); // 最多显示10个数据点
-            // 使用moveViewToAnimated方法平滑移动到最后10个数据点
-            float xValue = data.size() > 10 ? data.size() - 10 : 0;
-            chartSleepTrend.moveViewToAnimated(xValue, 0, YAxis.AxisDependency.LEFT, 1000); // 1秒内平滑移动
-        }
         
         // 刷新图表
         chartSleepTrend.notifyDataSetChanged();
