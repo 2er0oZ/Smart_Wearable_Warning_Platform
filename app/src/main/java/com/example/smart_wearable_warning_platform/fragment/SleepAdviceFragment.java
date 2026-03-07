@@ -161,9 +161,12 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateSleepTrendChart(List<SleepData> data) {
+        // 使用Controller准备图表数据（已经按日期从旧到新排序）
+        List<SleepData> sortedData = controller.prepareChartData(data);
+        
         // 只显示最近7天的数据
-        int daysToShow = Math.min(7, data.size());
-        List<SleepData> recentData = data.subList(data.size() - daysToShow, data.size());
+        int startIndex = Math.max(0, sortedData.size() - 7);
+        List<SleepData> recentData = sortedData.subList(startIndex, sortedData.size());
         
         List<Entry> entries = new ArrayList<>();
         for (int i = 0; i < recentData.size(); i++) {
@@ -188,7 +191,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         XAxis xAxis = chartSleepTrend.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(1f);
-        xAxis.setLabelCount(daysToShow);
+        xAxis.setLabelCount(recentData.size());
         xAxis.setDrawGridLines(false);
         xAxis.setTextColor(Color.parseColor("#666666"));
         xAxis.setValueFormatter(new ValueFormatter() {
@@ -197,6 +200,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
                 int index = (int) value;
                 if (index >= 0 && index < recentData.size()) {
                     String date = recentData.get(index).getDate();
+                    // 格式化为月-日
                     return date.substring(5); // 只显示月-日
                 }
                 return "";
@@ -225,6 +229,13 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         chartSleepTrend.setDragEnabled(true);
         chartSleepTrend.setBackgroundColor(Color.parseColor("#FAFAFA"));
         chartSleepTrend.setDrawGridBackground(false);
+        
+        // 设置可见范围，显示所有数据
+        if (recentData != null && recentData.size() > 0) {
+            chartSleepTrend.setVisibleXRangeMaximum(7); // 最多显示7个数据点
+            // 移动到最新数据
+            chartSleepTrend.moveViewToX(recentData.size() - 1);
+        }
         
         // 刷新图表
         chartSleepTrend.notifyDataSetChanged();
