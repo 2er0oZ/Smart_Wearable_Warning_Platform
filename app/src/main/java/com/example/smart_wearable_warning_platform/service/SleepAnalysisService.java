@@ -465,11 +465,11 @@ public class SleepAnalysisService {
         
         // 基于整体评分生成建议
         if (overallScore < 40) {
-            adviceList.add(new SleepAdvice(1, "睡眠质量较差", "您的睡眠质量评分较低，建议您调整作息时间，保持规律睡眠。", "改善建议", 1));
+            adviceList.add(new SleepAdvice(1, "睡眠质量较差", "您的睡眠质量评分较低，建议您调整作息时间，保持规律睡眠。", "改善建议", 5));
         } else if (overallScore < 70) {
-            adviceList.add(new SleepAdvice(1, "睡眠质量一般", "您的睡眠质量有提升空间，建议您保持规律作息，避免睡前使用电子设备。", "改善建议", 2));
+            adviceList.add(new SleepAdvice(1, "睡眠质量一般", "您的睡眠质量有提升空间，建议您保持规律作息，避免睡前使用电子设备。", "改善建议", 3));
         } else {
-            adviceList.add(new SleepAdvice(1, "睡眠质量良好", "您的睡眠质量很好，请继续保持良好的作息习惯。", "保持建议", 3));
+            adviceList.add(new SleepAdvice(1, "睡眠质量良好", "您的睡眠质量很好，请继续保持良好的作息习惯。", "保持建议", 2));
         }
         
         // 基于睡眠时长生成建议
@@ -480,15 +480,15 @@ public class SleepAnalysisService {
         avgDuration /= sleepDataList.size();
         
         if (avgDuration < 6) {
-            adviceList.add(new SleepAdvice(2, "睡眠时间不足", "您的平均睡眠时间不足6小时，建议您保证每晚7-8小时的睡眠时间。", "健康建议", 1));
+            adviceList.add(new SleepAdvice(2, "睡眠时间不足", "您的平均睡眠时间不足6小时，建议您保证每晚7-8小时的睡眠时间。", "健康建议", 4));
         } else if (avgDuration > 9) {
-            adviceList.add(new SleepAdvice(2, "睡眠时间过长", "您的平均睡眠时间超过9小时，过长的睡眠时间可能影响日间精力。", "健康建议", 2));
+            adviceList.add(new SleepAdvice(2, "睡眠时间过长", "您的平均睡眠时间超过9小时，过长的睡眠时间可能影响日间精力。", "健康建议", 3));
         }
         
         // 基于规律性生成建议
         int regularityScore = calculateRegularityScore(sleepDataList);
         if (regularityScore < 60) {
-            adviceList.add(new SleepAdvice(3, "作息不规律", "您的作息时间不太规律，建议您每天在同一时间入睡和起床，即使在周末。", "规律建议", 1));
+            adviceList.add(new SleepAdvice(3, "作息不规律", "您的作息时间不太规律，建议您每天在同一时间入睡和起床，即使在周末。", "规律建议", 4));
         }
         
         return adviceList;

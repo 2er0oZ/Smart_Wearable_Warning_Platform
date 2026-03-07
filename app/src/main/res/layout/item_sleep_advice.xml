@@ -30,12 +30,13 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
 
                 <TextView
                     android:id="@+id/tv_advice_title"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="29dp"
                     android:layout_weight="1"
                     android:text="建议标题"
                     android:textColor="#333333"
@@ -43,24 +44,42 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_advice_priority_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_priority_badge"
+                    android:paddingStart="6dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="3dp"
+                    android:text="重要"
+                    android:textColor="#F44336"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false"
+                    android:lineSpacingExtra="0dp" />
+                
+                <TextView
                     android:id="@+id/tv_advice_category"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="#E0E0E0"
                     android:paddingStart="6dp"
-                    android:paddingTop="2dp"
+                    android:paddingTop="3dp"
                     android:paddingEnd="6dp"
-                    android:paddingBottom="2dp"
+                    android:paddingBottom="3dp"
                     android:text="分类"
                     android:textColor="#666666"
-                    android:textSize="10sp" />
+                    android:textSize="10sp"
+                    android:includeFontPadding="false"
+                    android:lineSpacingExtra="0dp" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_advice_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:text="建议内容"
                 android:textColor="#666666"
                 android:textSize="12sp" />
