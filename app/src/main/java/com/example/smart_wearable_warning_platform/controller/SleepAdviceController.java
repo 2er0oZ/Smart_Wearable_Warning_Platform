@@ -31,7 +31,6 @@ public class SleepAdviceController {
         void updateSleepScoreUI(int score);
         void updateSleepStatistics(List<SleepData> data);
         void updateLastSleepInfo(SleepData lastSleepData);
-        void updateSleepTrendChart(List<SleepData> data);
         void updateSleepAdvice(List<SleepAdvice> adviceList);
     }
     
@@ -82,7 +81,6 @@ public class SleepAdviceController {
         view.updateSleepScoreUI(overallScore);
         view.updateSleepStatistics(sleepDataList);
         view.updateLastSleepInfo(sleepDataList.get(sleepDataList.size() - 1));
-        view.updateSleepTrendChart(sleepDataList);
         
         // 生成睡眠建议
         List<SleepAdvice> adviceList = sleepAnalysisService.generateSleepAdvice(sleepDataList, overallScore);
@@ -107,21 +105,7 @@ public class SleepAdviceController {
         return last7Days;
     }
     
-    /**
-     * 准备睡眠趋势图表数据
-     */
-    public List<SleepData> prepareChartData(List<SleepData> sleepDataList) {
-        // 直接返回所有睡眠数据，按日期排序
-        if (sleepDataList == null || sleepDataList.isEmpty()) {
-            return new ArrayList<>();
-        }
-        
-        // 按日期排序
-        List<SleepData> sortedData = new ArrayList<>(sleepDataList);
-        sortedData.sort((a, b) -> a.getDate().compareTo(b.getDate()));
-        
-        return sortedData;
-    }
+    // 睡眠趋势图表数据准备功能已移除
     
     /**
      * 计算规律性评分

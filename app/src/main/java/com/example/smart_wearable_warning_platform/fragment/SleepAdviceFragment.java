@@ -22,13 +22,7 @@ import com.example.smart_wearable_warning_platform.model.HeartRateEntry;
 import com.example.smart_wearable_warning_platform.model.SleepAdvice;
 import com.example.smart_wearable_warning_platform.model.SleepData;
 import com.example.smart_wearable_warning_platform.model.StudentThreshold;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.formatter.ValueFormatter;
+// 图表相关导入已移除
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -47,7 +41,6 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     private TextView tvSleepScore, tvSleepQuality, tvAvgDuration, tvRegularityScore;
     private TextView tvLastSleepTime, tvLastWakeTime, tvLastDuration, tvLastQuality;
     private ProgressBar progressSleepQuality;
-    private LineChart chartSleepTrend;
     private RecyclerView rvSleepAdvice;
     private SleepAdviceAdapter adviceAdapter;
     
@@ -66,7 +59,6 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         tvLastDuration = root.findViewById(R.id.tv_last_duration);
         tvLastQuality = root.findViewById(R.id.tv_last_quality);
         progressSleepQuality = root.findViewById(R.id.progress_sleep_quality);
-        chartSleepTrend = root.findViewById(R.id.chart_sleep_trend);
         rvSleepAdvice = root.findViewById(R.id.rv_sleep_advice);
         
         // 初始化控制器
@@ -86,7 +78,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     // 实现View接口方法
     @Override
     public void showData(List<SleepData> data) {
-        // 这个方法在当前实现中不需要，因为数据通过其他方法更新
+    // 这个方法在当前实现中不需要，因为数据通过其他方法更新
     }
     
     @Override
@@ -159,88 +151,6 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         tvLastQuality.setText(lastSleepData.getQualityDescription());
     }
     
-    @Override
-    public void updateSleepTrendChart(List<SleepData> data) {
-        // 使用Controller准备图表数据（已经按日期从旧到新排序）
-        List<SleepData> sortedData = controller.prepareChartData(data);
-        
-        // 只显示最近7天的数据
-        int startIndex = Math.max(0, sortedData.size() - 7);
-        List<SleepData> recentData = sortedData.subList(startIndex, sortedData.size());
-        
-        List<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < recentData.size(); i++) {
-            entries.add(new Entry(i, recentData.get(i).getQuality()));
-        }
-        
-        LineDataSet dataSet = new LineDataSet(entries, "睡眠质量");
-        dataSet.setColor(Color.parseColor("#4ECDC4"));
-        dataSet.setCircleColor(Color.parseColor("#4ECDC4"));
-        dataSet.setLineWidth(2.5f);
-        dataSet.setCircleRadius(4f);
-        dataSet.setDrawValues(false);
-        dataSet.setDrawCircles(true);
-        dataSet.setMode(LineDataSet.Mode.LINEAR);
-        dataSet.setDrawFilled(true);
-        dataSet.setFillColor(Color.parseColor("#334ECDC4"));
-        
-        LineData lineData = new LineData(dataSet);
-        chartSleepTrend.setData(lineData);
-        
-        // 配置X轴
-        XAxis xAxis = chartSleepTrend.getXAxis();
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setGranularity(1f);
-        xAxis.setLabelCount(recentData.size());
-        xAxis.setDrawGridLines(false);
-        xAxis.setTextColor(Color.parseColor("#666666"));
-        xAxis.setValueFormatter(new ValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                int index = (int) value;
-                if (index >= 0 && index < recentData.size()) {
-                    String date = recentData.get(index).getDate();
-                    // 格式化为月-日
-                    return date.substring(5); // 只显示月-日
-                }
-                return "";
-            }
-        });
-        
-        // 配置Y轴
-        YAxis leftAxis = chartSleepTrend.getAxisLeft();
-        leftAxis.setAxisMinimum(0);
-        leftAxis.setAxisMaximum(100);
-        leftAxis.setGranularity(20f);
-        leftAxis.setDrawGridLines(true);
-        leftAxis.setGridColor(Color.parseColor("#EEEEEE"));
-        leftAxis.setTextColor(Color.parseColor("#666666"));
-        
-        // 隐藏右侧Y轴
-        chartSleepTrend.getAxisRight().setEnabled(false);
-        
-        // 配置图表
-        chartSleepTrend.getDescription().setEnabled(false);
-        chartSleepTrend.getLegend().setEnabled(false);
-        chartSleepTrend.setTouchEnabled(true);
-        chartSleepTrend.setPinchZoom(true);
-        chartSleepTrend.setDoubleTapToZoomEnabled(true);
-        chartSleepTrend.setScaleEnabled(true);
-        chartSleepTrend.setDragEnabled(true);
-        chartSleepTrend.setBackgroundColor(Color.parseColor("#FAFAFA"));
-        chartSleepTrend.setDrawGridBackground(false);
-        
-        // 设置可见范围，显示所有数据
-        if (recentData != null && recentData.size() > 0) {
-            chartSleepTrend.setVisibleXRangeMaximum(7); // 最多显示7个数据点
-            // 移动到最新数据
-            chartSleepTrend.moveViewToX(recentData.size() - 1);
-        }
-        
-        // 刷新图表
-        chartSleepTrend.notifyDataSetChanged();
-        chartSleepTrend.invalidate();
-    }
     
     @Override
     public void updateSleepAdvice(List<SleepAdvice> adviceList) {
