@@ -3,64 +3,70 @@ package com.example.smart_wearable_warning_platform.model;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.example.smart_wearable_warning_platform.dao.HealthAlertDAO;
+import com.example.smart_wearable_warning_platform.dao.HeartRateEntryDAO;
+import com.example.smart_wearable_warning_platform.dao.StudentThresholdDAO;
+import com.example.smart_wearable_warning_platform.dao.UserDAO;
 import com.example.smart_wearable_warning_platform.service.HeartRateService;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 数据管理类 - 使用SQLite数据库替代SharedPreferences
+ */
 public class DataManager {
     private static final String PREFS_NAME = "HealthAppPrefs";
-    private static final String KEY_USERS = "users_list";
-    private static final String KEY_ALERTS = "alerts_list";
-    private static final String KEY_MIN_HR = "min_hr_threshold"; // 默认50
-    private static final String KEY_MAX_HR = "max_hr_threshold"; // 默认100
-    private static final String KEY_STUDENT_THRESHOLDS = "student_thresholds"; // 存储每个学生的阈值映射
     private static final String KEY_CURRENT_USER = "current_user";
-
+    private static final int DEFAULT_MIN_HR = 50;
+    private static final int DEFAULT_MAX_HR = 100;
 
     private SharedPreferences prefs;
     private Gson gson;
     private HeartRateService heartRateService;
+    
+    // DAO对象
+    private UserDAO userDAO;
+    private HeartRateEntryDAO heartRateEntryDAO;
+    private HealthAlertDAO healthAlertDAO;
+    private StudentThresholdDAO studentThresholdDAO;
 
     public DataManager(Context context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         gson = new Gson();
         heartRateService = new HeartRateService();
+        
+        // 初始化DAO对象
+        userDAO = new UserDAO(context);
+        heartRateEntryDAO = new HeartRateEntryDAO(context);
+        healthAlertDAO = new HealthAlertDAO(context);
+        studentThresholdDAO = new StudentThresholdDAO(context);
     }
 
     // --- 用户管理 ---
 
     public void registerUser(User user) {
-        List<User> users = getAllUsers();
-        for (User u : users) {
-            if (u.getUsername().equals(user.getUsername())) {
-                return; // 用户已存在
-            }
+        if (userDAO.isUserExists(user.getUsername())) {
+            return; // 用户已存在
         }
-        users.add(user);
-        saveUsers(users);
+        userDAO.insertUser(user);
     }
 
     public User loginUser(String username, String password) {
-        List<User> users = getAllUsers();
-        for (User u : users) {
-            if (u.getUsername().equals(username) && u.getPassword().equals(password)) {
-                // 保存当前登录用户
-                prefs.edit().putString(KEY_CURRENT_USER, gson.toJson(u)).apply();
-                return u;
-            }
+        User user = userDAO.getUserByUsernameAndPassword(username, password);
+        if (user != null) {
+            // 保存当前登录用户到SharedPreferences
+            prefs.edit().putString(KEY_CURRENT_USER, gson.toJson(user)).apply();
         }
-        return null;
+        return user;
     }
 
     public User getCurrentUser() {
@@ -75,105 +81,53 @@ public class DataManager {
         prefs.edit().remove(KEY_CURRENT_USER).commit();
     }
 
-
     public List<User> getAllUsers() {
-        String json = prefs.getString(KEY_USERS, null);
-        Type type = new TypeToken<ArrayList<User>>(){}.getType();
-        if (json == null) return new ArrayList<>();
-        return gson.fromJson(json, type);
-    }
-
-    private void saveUsers(List<User> users) {
-        String json = gson.toJson(users);
-        prefs.edit().putString(KEY_USERS, json).apply();
+        return userDAO.getAllUsers();
     }
 
     // --- 预警与阈值管理 ---
 
     public int getMinThreshold() {
-        return prefs.getInt(KEY_MIN_HR, 50);
+        return DEFAULT_MIN_HR;
     }
 
     public void setMinThreshold(int value) {
-        prefs.edit().putInt(KEY_MIN_HR, value).apply();
+        // 全局阈值已不再使用，现在每个学生都有独立的阈值设置
+        // 此方法保留以兼容旧代码
     }
 
     public int getMaxThreshold() {
-        return prefs.getInt(KEY_MAX_HR, 100);
+        return DEFAULT_MAX_HR;
     }
 
     public void setMaxThreshold(int value) {
-        prefs.edit().putInt(KEY_MAX_HR, value).apply();
+        // 全局阈值已不再使用，现在每个学生都有独立的阈值设置
+        // 此方法保留以兼容旧代码
     }
 
     public void addAlert(HealthAlert alert) {
-        List<HealthAlert> alerts = getAllAlerts();
-        alerts.add(alert);
-        saveAlerts(alerts);
+        healthAlertDAO.insertAlert(alert);
     }
 
     public List<HealthAlert> getAllAlerts() {
-        String json = prefs.getString(KEY_ALERTS, null);
-        Type type = new TypeToken<ArrayList<HealthAlert>>(){}.getType();
-        if (json == null) return new ArrayList<>();
-        List<HealthAlert> list = gson.fromJson(json, type);
-        // 回填：如果之前的记录没有 bpm 字段逻辑，尝试从 message 中解析
-        for (HealthAlert alert : list) {
-            if (alert.getBpm() == 0) {
-                String msg = alert.getMessage();
-                if (msg != null) {
-                    // 提取第一个数字
-                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)").matcher(msg);
-                    if (m.find()) {
-                        try {
-                            int parsed = Integer.parseInt(m.group(1));
-                            alert.setBpm(parsed);
-                        } catch (NumberFormatException ignored) {
-                        }
-                    }
-                }
-            }
-        }
-        return list;
+        return healthAlertDAO.getAllAlerts();
     }
 
-    private void saveAlerts(List<HealthAlert> alerts) {
-        String json = gson.toJson(alerts);
-        prefs.edit().putString(KEY_ALERTS, json).apply();
-    }
-
-    // --- 每个学生的阈值管理 (以 username 为 key 存储) ---
-    private Map<String, StudentThreshold> getStudentThresholdsMap() {
-        String json = prefs.getString(KEY_STUDENT_THRESHOLDS, null);
-        if (json == null) return new HashMap<>();
-        Type type = new TypeToken<HashMap<String, StudentThreshold>>(){}.getType();
-        Map<String, StudentThreshold> map = gson.fromJson(json, type);
-        if (map == null) return new HashMap<>();
-        return map;
-    }
-
-    private void saveStudentThresholdsMap(Map<String, StudentThreshold> map) {
-        String json = gson.toJson(map);
-        prefs.edit().putString(KEY_STUDENT_THRESHOLDS, json).apply();
-    }
+    // --- 每个学生的阈值管理 ---
 
     // 心率阈值 + 步频阈值四个参数
     public void setStudentThreshold(String username, int minHr, int maxHr, int minStep, int maxStep) {
-        Map<String, StudentThreshold> map = getStudentThresholdsMap();
         StudentThreshold th = new StudentThreshold(minHr, maxHr, minStep, maxStep);
-        map.put(username, th);
-        saveStudentThresholdsMap(map);
+        studentThresholdDAO.insertOrUpdateThreshold(username, th);
     }
 
     // 心率阈值 + 步频阈值 + 睡眠时间区间
     public void setStudentThresholdWithSleepTime(String username, int minHr, int maxHr, int minStep, int maxStep, String sleepStart, String sleepEnd) {
-        Map<String, StudentThreshold> map = getStudentThresholdsMap();
         StudentThreshold th = new StudentThreshold(minHr, maxHr, minStep, maxStep);
         th.setSleepStartTime(sleepStart);
         th.setSleepEndTime(sleepEnd);
         th.setEnableSleepTimeAlert(true);
-        map.put(username, th);
-        saveStudentThresholdsMap(map);
+        studentThresholdDAO.insertOrUpdateThreshold(username, th);
     }
 
     // 兼容老调用，只设置心率阈值，步频使用默认 0-5
@@ -182,15 +136,15 @@ public class DataManager {
     }
 
     /**
-     * 返回指定用户的阈值数组：{min, max}. 如果该用户没有单独设置，返回全局阈值。
+     * 返回指定用户的阈值：如果该用户没有单独设置，返回默认阈值。
      */
     public StudentThreshold getThresholdForUser(String username) {
-        Map<String, StudentThreshold> map = getStudentThresholdsMap();
-        if (map.containsKey(username)) {
-            return map.get(username);
+        StudentThreshold threshold = studentThresholdDAO.getThreshold(username);
+        if (threshold == null) {
+            // 返回默认阈值
+            return new StudentThreshold(DEFAULT_MIN_HR, DEFAULT_MAX_HR);
         }
-        // 全局阈值（心率） + 默认步频
-        return new StudentThreshold(getMinThreshold(), getMaxThreshold());
+        return threshold;
     }
     
     /**
@@ -404,7 +358,6 @@ public class DataManager {
     // 保存心率数据 (关联到具体的用户名)
     // 将新数据合并到已有数据中：同一时间戳使用新条目，最终按时间排序
     public void saveHeartRateData(String username, List<HeartRateEntry> data) {
-        String key = "hr_data_" + username;
         List<HeartRateEntry> existing = getHeartRateData(username);
         // 使用 LinkedHashMap 保持插入顺序（时间顺序会在最后排序）
         java.util.Map<String, HeartRateEntry> map = new java.util.LinkedHashMap<>();
@@ -418,42 +371,30 @@ public class DataManager {
         List<HeartRateEntry> merged = new java.util.ArrayList<>(map.values());
         // 按时间戳升序
         java.util.Collections.sort(merged, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
-        String json = gson.toJson(merged);
-        prefs.edit().putString(key, json).apply();
+        
+        // 删除旧数据并插入新数据
+        heartRateEntryDAO.deleteHeartRateData(username);
+        heartRateEntryDAO.insertHeartRateEntries(merged, username);
     }
 
     // 读取心率数据
     public List<HeartRateEntry> getHeartRateData(String username) {
-        String key = "hr_data_" + username;
-        String json = prefs.getString(key, null);
-        if (json == null) {
-            return new ArrayList<>();
-        }
-        Type type = new TypeToken<ArrayList<HeartRateEntry>>(){}.getType();
-        return gson.fromJson(json, type);
+        return heartRateEntryDAO.getHeartRateData(username);
     }
 
     /**
      * 检查用户名是否已经存在
      */
     public boolean isUserExists(String username) {
-        List<User> users = getAllUsers();
-        for (User u : users) {
-            if (u.getUsername().equals(username)) {
-                return true; // 用户名已存在
-            }
-        }
-        return false; // 用户名不存在
+        return userDAO.isUserExists(username);
     }
+    
     /**
      * 检查新导入的数据，如果超出阈值，则生成预警记录
      */
     public void checkAndGenerateAlerts(String username, List<HeartRateEntry> newEntries) {
         // 先按分钟聚合数据
         List<HeartRateEntry> averagedEntries = aggregateDataByMinute(newEntries);
-        
-        // 读取时使用 KEY_ALERTS (常量 "alerts_list")
-        List<HealthAlert> allAlerts = getAllAlerts();
         
         // 获取学生阈值设置
         StudentThreshold threshold = getThresholdForUser(username);
@@ -466,18 +407,8 @@ public class DataManager {
         
         // 删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
         for (HealthAlert newAlert : newAlerts) {
-            for (int i = allAlerts.size() - 1; i >= 0; --i) {
-                HealthAlert existing = allAlerts.get(i);
-                if (existing.getStudentName().equals(username) && existing.getTimestamp().equals(newAlert.getTimestamp())) {
-                    allAlerts.remove(i);
-                }
-            }
-            allAlerts.add(newAlert);
-        }
-        
-        // 保存预警
-        if (!newAlerts.isEmpty()) {
-            saveAlerts(allAlerts);
+            healthAlertDAO.deleteAlert(username, newAlert.getTimestamp());
+            healthAlertDAO.insertAlert(newAlert);
         }
     }
 
@@ -486,7 +417,9 @@ public class DataManager {
      * 该方法会覆盖原有的预警数据，适用于管理员更新阈值后重新计算所有历史预警。
      */
     public void rebuildAlertsFromSavedData() {
-        List<HealthAlert> newAlerts = new ArrayList<>();
+        // 删除所有现有预警
+        healthAlertDAO.deleteAllAlerts();
+        
         List<User> users = getAllUsers();
         
         for (User u : users) {
@@ -496,12 +429,12 @@ public class DataManager {
             
             // 使用服务层检查并生成预警
             List<HealthAlert> userAlerts = heartRateService.checkAndGenerateAlerts(username, data, threshold);
-            newAlerts.addAll(userAlerts);
-
+            
+            // 批量插入预警
+            if (!userAlerts.isEmpty()) {
+                healthAlertDAO.insertAlerts(userAlerts);
+            }
         }
-
-        // 存储新的预警列表（覆盖原有）
-        saveAlerts(newAlerts);
     }
     
     /**

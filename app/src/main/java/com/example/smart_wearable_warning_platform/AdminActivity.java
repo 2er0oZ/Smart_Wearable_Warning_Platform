@@ -32,7 +32,7 @@ public class AdminActivity extends AppCompatActivity {
         dataManager = new DataManager(this);
 
         BottomNavigationView bottomNav = findViewById(R.id.admin_bottom_nav);
-        bottomNav.setOnNavigationItemSelectedListener(item -> {
+        bottomNav.setOnItemSelectedListener(item -> {
             switch (item.getItemId()) {
                 case R.id.nav_students:
                     getSupportFragmentManager()
