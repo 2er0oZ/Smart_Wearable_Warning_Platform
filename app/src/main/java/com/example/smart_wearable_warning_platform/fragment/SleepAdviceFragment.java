@@ -47,6 +47,8 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        android.util.Log.d("SleepAdviceFragment", "onCreateView 开始");
+        
         View root = inflater.inflate(R.layout.fragment_sleep_advice, container, false);
         
         // 初始化视图
@@ -61,16 +63,60 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         progressSleepQuality = root.findViewById(R.id.progress_sleep_quality);
         rvSleepAdvice = root.findViewById(R.id.rv_sleep_advice);
         
+        android.util.Log.d("SleepAdviceFragment", "视图初始化完成");
+        
         // 初始化控制器
         controller = new SleepAdviceController(this, requireContext());
+        android.util.Log.d("SleepAdviceFragment", "控制器初始化完成");
         
         // 设置RecyclerView
         rvSleepAdvice.setLayoutManager(new LinearLayoutManager(requireContext()));
         
+        // 测试UI是否正常工作
+        testUI();
+        
         // 加载睡眠数据
+        android.util.Log.d("SleepAdviceFragment", "开始加载睡眠数据");
         controller.loadSleepData();
         
+        android.util.Log.d("SleepAdviceFragment", "onCreateView 完成");
         return root;
+    }
+    
+    /**
+     * 测试UI是否正常工作
+     */
+    private void testUI() {
+        android.util.Log.d("SleepAdviceFragment", "开始测试UI");
+        
+        try {
+            // 测试TextView是否可以设置文本
+            tvSleepScore.setText("测试");
+            tvSleepQuality.setText("测试");
+            tvAvgDuration.setText("测试");
+            tvRegularityScore.setText("测试");
+            tvLastSleepTime.setText("测试");
+            tvLastWakeTime.setText("测试");
+            tvLastDuration.setText("测试");
+            tvLastQuality.setText("测试");
+            progressSleepQuality.setProgress(50);
+            
+            android.util.Log.d("SleepAdviceFragment", "UI测试成功");
+            
+            // 清空测试数据
+            tvSleepScore.setText("--");
+            tvSleepQuality.setText("加载中...");
+            tvAvgDuration.setText("--");
+            tvRegularityScore.setText("--");
+            tvLastSleepTime.setText("--:--");
+            tvLastWakeTime.setText("--:--");
+            tvLastDuration.setText("--");
+            tvLastQuality.setText("--");
+            progressSleepQuality.setProgress(0);
+            
+        } catch (Exception e) {
+            android.util.Log.e("SleepAdviceFragment", "UI测试失败", e);
+        }
     }
     
 
@@ -83,6 +129,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void showNoDataMessage() {
+        android.util.Log.d("SleepAdviceFragment", "showNoDataMessage");
         tvSleepScore.setText("--");
         tvSleepQuality.setText("无数据");
         tvAvgDuration.setText("-- 小时");
@@ -107,6 +154,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateSleepScoreUI(int score) {
+        android.util.Log.d("SleepAdviceFragment", "updateSleepScoreUI: " + score);
         tvSleepScore.setText(String.valueOf(score));
         progressSleepQuality.setProgress(score);
         
@@ -126,6 +174,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateSleepStatistics(List<SleepData> data) {
+        android.util.Log.d("SleepAdviceFragment", "updateSleepStatistics: " + data.size() + " 条数据");
         if (data.isEmpty()) return;
         
         // 计算平均睡眠时长
@@ -143,6 +192,12 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateLastSleepInfo(SleepData lastSleepData) {
+        android.util.Log.d("SleepAdviceFragment", "updateLastSleepInfo: " + (lastSleepData != null ? lastSleepData.getDate() : "null"));
+        if (lastSleepData == null) {
+            android.util.Log.e("SleepAdviceFragment", "lastSleepData is null!");
+            return;
+        }
+        
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         
         tvLastSleepTime.setText(timeFormat.format(lastSleepData.getSleepTime()));
@@ -154,6 +209,7 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
     
     @Override
     public void updateSleepAdvice(List<SleepAdvice> adviceList) {
+        android.util.Log.d("SleepAdviceFragment", "updateSleepAdvice: " + adviceList.size() + " 条建议");
         adviceAdapter = new SleepAdviceAdapter(adviceList);
         rvSleepAdvice.setAdapter(adviceAdapter);
     }
