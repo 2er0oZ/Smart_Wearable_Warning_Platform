@@ -351,6 +351,7 @@ public class DataManager {
                 alert.setBpm(bpm);
                 alert.setStepFreq(stepFreq);
                 alert.setStep(true); // 标记为睡眠时间预警
+                alert.setStudentId(currentUser.getUsername()); // 设置学号
                 addAlert(alert);
             }
         }
@@ -405,8 +406,14 @@ public class DataManager {
         // 使用服务层检查并生成预警
         List<HealthAlert> newAlerts = heartRateService.checkAndGenerateAlerts(username, averagedEntries, threshold);
         
+        // 获取用户信息（姓名和学号）
+        User user = userDAO.getUserByUsername(username);
+        String studentName = user != null ? user.getName() : username;
+        
         // 删除同一学生、同一时间戳的旧预警（如果有），以便下面重新生成
         for (HealthAlert newAlert : newAlerts) {
+            newAlert.setStudentName(studentName);
+            newAlert.setStudentId(username);
             healthAlertDAO.deleteAlert(username, newAlert.getTimestamp());
             healthAlertDAO.insertAlert(newAlert);
         }
@@ -424,11 +431,18 @@ public class DataManager {
         
         for (User u : users) {
             String username = u.getUsername();
+            String studentName = u.getName(); // 获取学生姓名
             StudentThreshold threshold = getThresholdForUser(username);
             List<HeartRateEntry> data = getHeartRateData(username);
             
             // 使用服务层检查并生成预警
             List<HealthAlert> userAlerts = heartRateService.checkAndGenerateAlerts(username, data, threshold);
+            
+            // 设置学生姓名和学号
+            for (HealthAlert alert : userAlerts) {
+                alert.setStudentName(studentName);
+                alert.setStudentId(username);
+            }
             
             // 批量插入预警
             if (!userAlerts.isEmpty()) {

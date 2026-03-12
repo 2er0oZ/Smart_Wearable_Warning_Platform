@@ -4,6 +4,7 @@ public class HealthAlert {
     private String timestamp;
     private String message;
     private String studentName;
+    private String studentId; // 学生学号
     private int bpm;
     // 存储步频值（可能与 bpm 同时存在）
     private int stepFreq;
@@ -45,4 +46,8 @@ public class HealthAlert {
     // --- 新增：展开状态的控制 ---
     public boolean isExpanded() { return isExpanded; }
     public void setExpanded(boolean expanded) { isExpanded = expanded; }
+
+    // --- 新增：学号字段 ---
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
 }

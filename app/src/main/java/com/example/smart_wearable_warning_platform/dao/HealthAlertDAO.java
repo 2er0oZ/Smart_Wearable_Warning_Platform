@@ -32,10 +32,11 @@ public class HealthAlertDAO {
         values.put(DatabaseHelper.COLUMN_ALERT_TIMESTAMP, alert.getTimestamp());
         values.put(DatabaseHelper.COLUMN_MESSAGE, alert.getMessage());
         values.put(DatabaseHelper.COLUMN_STUDENT_NAME, alert.getStudentName());
+        values.put(DatabaseHelper.COLUMN_STUDENT_ID, alert.getStudentId());
         values.put(DatabaseHelper.COLUMN_ALERT_BPM, alert.getBpm());
         values.put(DatabaseHelper.COLUMN_STEP_FREQ, alert.getStepFreq());
-        values.put(DatabaseHelper.COLUMN_IS_STEP, alert.isStep() ? 1 : 0);
-        values.put(DatabaseHelper.COLUMN_IS_EXPANDED, alert.isExpanded() ? 1 : 0);
+        values.put(DatabaseHelper.COLUMN_IS_STEP, alert.isStep() ?1 : 0);
+        values.put(DatabaseHelper.COLUMN_IS_EXPANDED, alert.isExpanded() ?1 : 0);
         
         long result = db.insert(DatabaseHelper.TABLE_ALERTS, null, values);
         db.close();
@@ -58,10 +59,11 @@ public class HealthAlertDAO {
                 values.put(DatabaseHelper.COLUMN_ALERT_TIMESTAMP, alert.getTimestamp());
                 values.put(DatabaseHelper.COLUMN_MESSAGE, alert.getMessage());
                 values.put(DatabaseHelper.COLUMN_STUDENT_NAME, alert.getStudentName());
+                values.put(DatabaseHelper.COLUMN_STUDENT_ID, alert.getStudentId());
                 values.put(DatabaseHelper.COLUMN_ALERT_BPM, alert.getBpm());
                 values.put(DatabaseHelper.COLUMN_STEP_FREQ, alert.getStepFreq());
-                values.put(DatabaseHelper.COLUMN_IS_STEP, alert.isStep() ? 1 : 0);
-                values.put(DatabaseHelper.COLUMN_IS_EXPANDED, alert.isExpanded() ? 1 : 0);
+                values.put(DatabaseHelper.COLUMN_IS_STEP, alert.isStep() ?1 : 0);
+                values.put(DatabaseHelper.COLUMN_IS_EXPANDED, alert.isExpanded() ?1 : 0);
                 
                 long result = db.insert(DatabaseHelper.TABLE_ALERTS, null, values);
                 if (result != -1) {
@@ -98,10 +100,11 @@ public class HealthAlertDAO {
                 alert.setTimestamp(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_TIMESTAMP)));
                 alert.setMessage(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_MESSAGE)));
                 alert.setStudentName(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_NAME)));
+                alert.setStudentId(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_ID)));
                 alert.setBpm(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_BPM)));
                 alert.setStepFreq(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STEP_FREQ)));
-                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) == 1);
-                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) == 1);
+                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) ==1);
+                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) ==1);
                 alerts.add(alert);
             }
             cursor.close();
@@ -135,10 +138,11 @@ public class HealthAlertDAO {
                 alert.setTimestamp(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_TIMESTAMP)));
                 alert.setMessage(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_MESSAGE)));
                 alert.setStudentName(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_NAME)));
+                alert.setStudentId(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_ID)));
                 alert.setBpm(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_BPM)));
                 alert.setStepFreq(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STEP_FREQ)));
-                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) == 1);
-                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) == 1);
+                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) ==1);
+                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) ==1);
                 alerts.add(alert);
             }
             cursor.close();
@@ -173,10 +177,11 @@ public class HealthAlertDAO {
                 alert.setTimestamp(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_TIMESTAMP)));
                 alert.setMessage(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_MESSAGE)));
                 alert.setStudentName(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_NAME)));
+                alert.setStudentId(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STUDENT_ID)));
                 alert.setBpm(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ALERT_BPM)));
                 alert.setStepFreq(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_STEP_FREQ)));
-                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) == 1);
-                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) == 1);
+                alert.setStep(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_STEP)) ==1);
+                alert.setExpanded(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_IS_EXPANDED)) ==1);
                 alerts.add(alert);
             }
             cursor.close();
@@ -240,7 +245,7 @@ public class HealthAlertDAO {
     public int updateAlertExpanded(String studentName, String timestamp, boolean expanded) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(DatabaseHelper.COLUMN_IS_EXPANDED, expanded ? 1 : 0);
+        values.put(DatabaseHelper.COLUMN_IS_EXPANDED, expanded ?1 : 0);
         
         int result = db.update(
                 DatabaseHelper.TABLE_ALERTS,

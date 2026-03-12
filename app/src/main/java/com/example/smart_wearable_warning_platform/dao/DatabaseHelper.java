@@ -11,7 +11,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     // 数据库信息
     private static final String DATABASE_NAME = "health_monitor.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     
     // 用户表
     public static final String TABLE_USERS = "users";
@@ -35,6 +35,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_ALERT_TIMESTAMP = "timestamp";
     public static final String COLUMN_MESSAGE = "message";
     public static final String COLUMN_STUDENT_NAME = "student_name";
+    public static final String COLUMN_STUDENT_ID = "student_id";
     public static final String COLUMN_ALERT_BPM = "bpm";
     public static final String COLUMN_STEP_FREQ = "step_freq";
     public static final String COLUMN_IS_STEP = "is_step";
@@ -85,6 +86,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COLUMN_ALERT_TIMESTAMP + " TEXT NOT NULL, " +
             COLUMN_MESSAGE + " TEXT NOT NULL, " +
             COLUMN_STUDENT_NAME + " TEXT NOT NULL, " +
+            COLUMN_STUDENT_ID + " TEXT NOT NULL, " +
             COLUMN_ALERT_BPM + " INTEGER DEFAULT 0, " +
             COLUMN_STEP_FREQ + " INTEGER DEFAULT 0, " +
             COLUMN_IS_STEP + " INTEGER DEFAULT 0, " +
@@ -146,6 +148,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 2) {
             // 从版本1升级到版本2：添加name字段
             db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_NAME + " TEXT");
+        }
+        if (oldVersion < 3) {
+            // 从版本2升级到版本3：添加student_id字段
+            db.execSQL("ALTER TABLE " + TABLE_ALERTS + " ADD COLUMN " + COLUMN_STUDENT_ID + " TEXT");
         }
         // 如果需要更多版本升级，可以在这里添加更多if语句
     }

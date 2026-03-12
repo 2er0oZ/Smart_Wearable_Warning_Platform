@@ -19,6 +19,7 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
 
     public static class Group {
         public String studentName;
+        public String studentId; // 学生学号
         public List<HealthAlert> alerts = new ArrayList<>();
         public boolean expanded = false;
     }
@@ -39,7 +40,8 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Group g = groups.get(position);
-        holder.tvStudentName.setText(g.studentName);
+        String displayName = g.studentName + " " + g.studentId;
+        holder.tvStudentName.setText(displayName);
         holder.tvCount.setText(g.alerts.size() + "条");
 
         // 控制详情视图

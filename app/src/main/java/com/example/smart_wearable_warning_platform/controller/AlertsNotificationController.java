@@ -46,12 +46,18 @@ public class AlertsNotificationController {
         Map<String, GroupedAlertAdapter.Group> map = new LinkedHashMap<>();
         for (HealthAlert a : allAlerts) {
             String name = a.getStudentName();
+            String studentId = a.getStudentId();
             if (name == null) name = "未知";
-            GroupedAlertAdapter.Group g = map.get(name);
+            if (studentId == null) studentId = "";
+            
+            // 使用姓名作为分组键
+            String key = name + "_" + studentId;
+            GroupedAlertAdapter.Group g = map.get(key);
             if (g == null) {
                 g = new GroupedAlertAdapter.Group();
                 g.studentName = name;
-                map.put(name, g);
+                g.studentId = studentId;
+                map.put(key, g);
             }
             g.alerts.add(a);
         }
