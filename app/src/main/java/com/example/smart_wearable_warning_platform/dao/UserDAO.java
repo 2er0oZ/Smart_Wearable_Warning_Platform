@@ -32,6 +32,7 @@ public class UserDAO {
         values.put(DatabaseHelper.COLUMN_USERNAME, user.getUsername());
         values.put(DatabaseHelper.COLUMN_PASSWORD, user.getPassword());
         values.put(DatabaseHelper.COLUMN_ROLE, user.getRole());
+        values.put(DatabaseHelper.COLUMN_NAME, user.getName());
         
         long result = db.insert(DatabaseHelper.TABLE_USERS, null, values);
         db.close();
@@ -49,17 +50,19 @@ public class UserDAO {
         
         Cursor cursor = db.query(
                 DatabaseHelper.TABLE_USERS,
-                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE},
+                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE, DatabaseHelper.COLUMN_NAME},
                 DatabaseHelper.COLUMN_USERNAME + " = ?",
                 new String[]{username},
                 null, null, null
         );
         
         if (cursor != null && cursor.moveToFirst()) {
+            String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME));
             user = new User(
                     cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USERNAME)),
                     cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE))
+                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE)),
+                    name
             );
             cursor.close();
         }
@@ -80,17 +83,19 @@ public class UserDAO {
         
         Cursor cursor = db.query(
                 DatabaseHelper.TABLE_USERS,
-                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE},
+                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE, DatabaseHelper.COLUMN_NAME},
                 DatabaseHelper.COLUMN_USERNAME + " = ? AND " + DatabaseHelper.COLUMN_PASSWORD + " = ?",
                 new String[]{username, password},
                 null, null, null
         );
         
         if (cursor != null && cursor.moveToFirst()) {
+            String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME));
             user = new User(
                     cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USERNAME)),
                     cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE))
+                    cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE)),
+                    name
             );
             cursor.close();
         }
@@ -109,16 +114,18 @@ public class UserDAO {
         
         Cursor cursor = db.query(
                 DatabaseHelper.TABLE_USERS,
-                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE},
+                new String[]{DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD, DatabaseHelper.COLUMN_ROLE, DatabaseHelper.COLUMN_NAME},
                 null, null, null, null, null
         );
         
         if (cursor != null) {
             while (cursor.moveToNext()) {
+                String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME));
                 User user = new User(
                         cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_USERNAME)),
                         cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD)),
-                        cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE))
+                        cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ROLE)),
+                        name
                 );
                 userList.add(user);
             }
@@ -139,6 +146,7 @@ public class UserDAO {
         ContentValues values = new ContentValues();
         values.put(DatabaseHelper.COLUMN_PASSWORD, user.getPassword());
         values.put(DatabaseHelper.COLUMN_ROLE, user.getRole());
+        values.put(DatabaseHelper.COLUMN_NAME, user.getName());
         
         int result = db.update(
                 DatabaseHelper.TABLE_USERS,

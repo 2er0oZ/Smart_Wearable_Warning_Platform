@@ -20,21 +20,28 @@ import com.example.smart_wearable_warning_platform.model.User;
 public class ProfileFragment extends Fragment {
 
     private DataManager dataManager;
-    private TextView tvUsername, tvRole;
+    private TextView tvName, tvStudentId, tvRole;
     private Button btnLogout;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_profile, container, false);
-        tvUsername = root.findViewById(R.id.tv_username);
+        tvName = root.findViewById(R.id.tv_name);
+        tvStudentId = root.findViewById(R.id.tv_student_id);
         tvRole = root.findViewById(R.id.tv_role);
         btnLogout = root.findViewById(R.id.btn_logout_profile);
 
         dataManager = new DataManager(requireContext());
         User current = dataManager.getCurrentUser();
         if (current != null) {
-            tvUsername.setText(current.getUsername());
+            if ("Student".equals(current.getRole())) {
+                tvName.setText("姓名: " + current.getName());
+                tvStudentId.setText("学号: " + current.getUsername());
+            } else {
+                tvName.setText("管理员账号");
+                tvStudentId.setText("账号: " + current.getUsername());
+            }
             tvRole.setText("身份: " + current.getRole());
         }
 

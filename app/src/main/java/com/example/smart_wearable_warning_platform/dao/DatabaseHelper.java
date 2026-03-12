@@ -11,7 +11,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     // 数据库信息
     private static final String DATABASE_NAME = "health_monitor.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     
     // 用户表
     public static final String TABLE_USERS = "users";
@@ -19,6 +19,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_USERNAME = "username";
     public static final String COLUMN_PASSWORD = "password";
     public static final String COLUMN_ROLE = "role";
+    public static final String COLUMN_NAME = "name";
     
     // 心率数据表
     public static final String TABLE_HEART_RATE = "heart_rate_entries";
@@ -66,7 +67,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COLUMN_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             COLUMN_USERNAME + " TEXT UNIQUE NOT NULL, " +
             COLUMN_PASSWORD + " TEXT NOT NULL, " +
-            COLUMN_ROLE + " TEXT NOT NULL" + ");";
+            COLUMN_ROLE + " TEXT NOT NULL, " +
+            COLUMN_NAME + " TEXT" + ");";
     
     // 创建心率数据表的SQL语句
     private static final String CREATE_TABLE_HEART_RATE = "CREATE TABLE " + TABLE_HEART_RATE + "(" +
@@ -141,13 +143,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // 删除旧表并重新创建（简单处理，生产环境需要数据迁移）
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_SLEEP_DATA);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_THRESHOLDS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_ALERTS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_HEART_RATE);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-        onCreate(db);
+        if (oldVersion < 2) {
+            // 从版本1升级到版本2：添加name字段
+            db.execSQL("ALTER TABLE " + TABLE_USERS + " ADD COLUMN " + COLUMN_NAME + " TEXT");
+        }
+        // 如果需要更多版本升级，可以在这里添加更多if语句
     }
     
     @Override

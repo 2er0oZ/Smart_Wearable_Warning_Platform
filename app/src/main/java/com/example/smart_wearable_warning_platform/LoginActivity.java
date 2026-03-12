@@ -14,7 +14,7 @@ import com.example.smart_wearable_warning_platform.model.User;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private EditText etUsername, etPassword;
+    private EditText etStudentId, etPassword;
     private RadioButton rbStudent, rbAdmin;
     private Button btnLogin;
     private TextView tvGoToRegister; // 新增：跳转注册
@@ -27,12 +27,15 @@ public class LoginActivity extends AppCompatActivity {
 
         dataManager = new DataManager(this);
 
+        // 初始化默认管理员账号
+        initializeDefaultAdmin();
+
         // 检查是否已登录
         if (dataManager.getCurrentUser() != null) {
             navigateToHome(dataManager.getCurrentUser());
         }
 
-        etUsername = findViewById(R.id.et_username);
+        etStudentId = findViewById(R.id.et_student_id);
         etPassword = findViewById(R.id.et_password);
         rbStudent = findViewById(R.id.rb_student);
         rbAdmin = findViewById(R.id.rb_admin);
@@ -47,19 +50,30 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(intent);
         });
     }
+    
+    /**
+     * 初始化默认管理员账号
+     */
+    private void initializeDefaultAdmin() {
+        if (!dataManager.isUserExists("admin")) {
+            User admin = new User("admin", "admin", "Admin", null);
+            dataManager.registerUser(admin);
+            android.util.Log.d("LoginActivity", "默认管理员账号已创建");
+        }
+    }
 
     private void handleLogin() {
-        String username = etUsername.getText().toString().trim();
+        String studentId = etStudentId.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         String role = rbStudent.isChecked() ? "Student" : "Admin";
 
-        if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "请输入用户名和密码", Toast.LENGTH_SHORT).show();
+        if (studentId.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "请输入学号和密码", Toast.LENGTH_SHORT).show();
             return;
         }
 
         // 仅执行登录逻辑
-        User user = dataManager.loginUser(username, password);
+        User user = dataManager.loginUser(studentId, password);
 
         if (user != null) {
             // 登录成功
@@ -69,8 +83,8 @@ public class LoginActivity extends AppCompatActivity {
                 navigateToHome(user);
             }
         } else {
-            // 登录失败：提示用户名或密码错误（不再自动注册）
-            Toast.makeText(this, "用户名不存在或密码错误", Toast.LENGTH_SHORT).show();
+            // 登录失败：提示学号或密码错误
+            Toast.makeText(this, "学号不存在或密码错误", Toast.LENGTH_SHORT).show();
         }
     }
 

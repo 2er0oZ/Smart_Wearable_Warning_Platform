@@ -94,7 +94,8 @@ public class StudentManagementFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull VH holder, int position) {
             User u = users.get(position);
-            holder.tv.setText(u.getUsername());
+            String displayName = u.getName() + " " + u.getUsername();
+            holder.tv.setText(displayName);
             holder.tv.setOnClickListener(v -> showThresholdDialog(u));
         }
 
@@ -114,7 +115,8 @@ public class StudentManagementFragment extends Fragment {
 
     private void showThresholdDialog(User user) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("设置 " + user.getUsername() + " 的阈值");
+        String dialogTitle = user.getName() + " (" + user.getUsername() + ")";
+        builder.setTitle("设置 " + dialogTitle + " 的阈值");
 
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -210,12 +212,14 @@ public class StudentManagementFragment extends Fragment {
             users.addAll(allUsers);
         } else {
             for (User u : allUsers) {
-                if (u.getUsername() != null && u.getUsername().toLowerCase().contains(q)) {
+                boolean matchName = u.getName() != null && u.getName().toLowerCase().contains(q);
+                boolean matchUsername = u.getUsername() != null && u.getUsername().toLowerCase().contains(q);
+                if (matchName || matchUsername) {
                     users.add(u);
                 }
             }
         }
-        // 通知 RecyclerView 更新
+        //通知 RecyclerView 更新
         requireActivity().runOnUiThread(() -> {
             if (recyclerStudents.getAdapter() != null) {
                 recyclerStudents.getAdapter().notifyDataSetChanged();
