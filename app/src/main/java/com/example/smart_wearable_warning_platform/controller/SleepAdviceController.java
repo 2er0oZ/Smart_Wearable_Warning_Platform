@@ -44,8 +44,17 @@ public class SleepAdviceController {
     private ExecutorService executorService;
     private Handler mainHandler;
     
-    public SleepAdviceController(View view, Context context) {
-        this.view = view;
+    // 数据缓存
+    private List<SleepData> cachedSleepDataList;
+    private int cachedOverallScore;
+    private SleepData cachedLastSleepData;
+    private List<SleepAdvice> cachedAdviceList;
+    private boolean isDataLoaded = false;
+    
+    // 单例实例
+    private static SleepAdviceController instance;
+    
+    private SleepAdviceController(Context context) {
         this.dataManager = new DataManager(context);
         this.sleepAnalysisService = new SleepAnalysisService();
         this.executorService = Executors.newSingleThreadExecutor();
@@ -53,14 +62,39 @@ public class SleepAdviceController {
     }
     
     /**
-     * 加载睡眠数据（异步执行）
+     * 获取单例实例
+     */
+    public static SleepAdviceController getInstance(Context context) {
+        if (instance == null) {
+            instance = new SleepAdviceController(context);
+        }
+        return instance;
+    }
+    
+    /**
+     * 设置视图
+     */
+    public void setView(View view) {
+        this.view = view;
+    }
+    
+    /**
+     * 加载睡眠数据（异步执行，带缓存）
      */
     public void loadSleepData() {
         android.util.Log.d("SleepAdviceController", "开始加载睡眠数据");
         
-        // 临时测试：先使用同步方式测试
-        // loadSleepDataSync();
-        // return;
+        // 如果数据已加载，直接使用缓存
+        if (isDataLoaded && cachedSleepDataList != null) {
+            android.util.Log.d("SleepAdviceController", "使用缓存数据，跳过加载");
+            mainHandler.post(() -> {
+                view.updateSleepScoreUI(cachedOverallScore);
+                view.updateSleepStatistics(cachedSleepDataList);
+                view.updateLastSleepInfo(cachedLastSleepData);
+                view.updateSleepAdvice(cachedAdviceList);
+            });
+            return;
+        }
         
         executorService.execute(() -> {
             try {
@@ -116,6 +150,14 @@ public class SleepAdviceController {
                 List<SleepAdvice> adviceList = sleepAnalysisService.generateSleepAdvice(sleepDataList, overallScore);
                 android.util.Log.d("SleepAdviceController", "生成的建议数量: " + adviceList.size());
                 
+                // 缓存数据
+                cachedSleepDataList = sleepDataList;
+                cachedOverallScore = overallScore;
+                cachedLastSleepData = lastCompleteSleepData;
+                cachedAdviceList = adviceList;
+                isDataLoaded = true;
+                android.util.Log.d("SleepAdviceController", "数据已缓存");
+                
                 // 在主线程更新UI
                 mainHandler.post(() -> {
                     android.util.Log.d("SleepAdviceController", "开始更新UI");
@@ -133,74 +175,20 @@ public class SleepAdviceController {
     }
     
     /**
-     * 同步加载睡眠数据（用于测试）
+     * 刷新睡眠数据（强制重新加载）
      */
-    private void loadSleepDataSync() {
-        android.util.Log.d("SleepAdviceController", "开始同步加载睡眠数据");
+    public void refreshSleepData() {
+        android.util.Log.d("SleepAdviceController", "刷新睡眠数据");
         
-        try {
-            User currentUser = dataManager.getCurrentUser();
-            if (currentUser == null) {
-                android.util.Log.e("SleepAdviceController", "用户信息获取失败");
-                view.showErrorMessage("用户信息获取失败");
-                return;
-            }
-            
-            android.util.Log.d("SleepAdviceController", "当前用户: " + currentUser.getUsername());
-            
-            // 获取心率数据
-            List<HeartRateEntry> heartRateData = dataManager.getHeartRateData(currentUser.getUsername());
-            android.util.Log.d("SleepAdviceController", "心率数据数量: " + (heartRateData != null ? heartRateData.size() : 0));
-            
-            if (heartRateData == null || heartRateData.isEmpty()) {
-                android.util.Log.w("SleepAdviceController", "心率数据为空");
-                view.showNoDataMessage();
-                return;
-            }
-            
-            // 获取学生阈值设置
-            StudentThreshold threshold = dataManager.getStudentThreshold(currentUser.getUsername());
-            if (threshold == null) {
-                android.util.Log.d("SleepAdviceController", "使用默认阈值");
-                threshold = new StudentThreshold(); // 使用默认值
-            }
-            
-            android.util.Log.d("SleepAdviceController", "睡眠时间区间: " + threshold.getSleepStartTime() + " - " + threshold.getSleepEndTime());
-            
-            // 分析睡眠数据
-            List<SleepData> sleepDataList = sleepAnalysisService.analyzeSleepData(heartRateData, threshold);
-            android.util.Log.d("SleepAdviceController", "分析得到的睡眠数据数量: " + sleepDataList.size());
-            
-            if (sleepDataList.isEmpty()) {
-                android.util.Log.w("SleepAdviceController", "睡眠数据列表为空");
-                view.showNoDataMessage();
-                return;
-            }
-            
-            // 计算睡眠质量评分
-            int overallScore = calculateOverallSleepScore(sleepDataList);
-            android.util.Log.d("SleepAdviceController", "整体睡眠评分: " + overallScore);
-            
-            // 找到最近一个完整的睡眠数据
-            SleepData lastCompleteSleepData = findLastCompleteSleepData(sleepDataList);
-            android.util.Log.d("SleepAdviceController", "最近完整睡眠数据: " + (lastCompleteSleepData != null ? lastCompleteSleepData.getDate() : "null"));
-            
-            // 生成睡眠建议
-            List<SleepAdvice> adviceList = sleepAnalysisService.generateSleepAdvice(sleepDataList, overallScore);
-            android.util.Log.d("SleepAdviceController", "生成的建议数量: " + adviceList.size());
-            
-            // 更新UI
-            android.util.Log.d("SleepAdviceController", "开始更新UI");
-            view.updateSleepScoreUI(overallScore);
-            view.updateSleepStatistics(sleepDataList);
-            view.updateLastSleepInfo(lastCompleteSleepData);
-            view.updateSleepAdvice(adviceList);
-            android.util.Log.d("SleepAdviceController", "UI更新完成");
-            
-        } catch (Exception e) {
-            android.util.Log.e("SleepAdviceController", "数据加载失败", e);
-            view.showErrorMessage("数据加载失败: " + e.getMessage());
-        }
+        // 清除缓存
+        isDataLoaded = false;
+        cachedSleepDataList = null;
+        cachedOverallScore = 0;
+        cachedLastSleepData = null;
+        cachedAdviceList = null;
+        
+        // 重新加载数据
+        loadSleepData();
     }
     
     /**

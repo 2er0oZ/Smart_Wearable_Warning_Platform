@@ -65,15 +65,13 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         
         android.util.Log.d("SleepAdviceFragment", "视图初始化完成");
         
-        // 初始化控制器
-        controller = new SleepAdviceController(this, requireContext());
+        // 初始化控制器（使用单例模式）
+        controller = SleepAdviceController.getInstance(requireContext());
+        controller.setView(this);
         android.util.Log.d("SleepAdviceFragment", "控制器初始化完成");
         
         // 设置RecyclerView
         rvSleepAdvice.setLayoutManager(new LinearLayoutManager(requireContext()));
-        
-        // 测试UI是否正常工作
-        testUI();
         
         // 加载睡眠数据
         android.util.Log.d("SleepAdviceFragment", "开始加载睡眠数据");
@@ -82,44 +80,6 @@ public class SleepAdviceFragment extends Fragment implements SleepAdviceControll
         android.util.Log.d("SleepAdviceFragment", "onCreateView 完成");
         return root;
     }
-    
-    /**
-     * 测试UI是否正常工作
-     */
-    private void testUI() {
-        android.util.Log.d("SleepAdviceFragment", "开始测试UI");
-        
-        try {
-            // 测试TextView是否可以设置文本
-            tvSleepScore.setText("测试");
-            tvSleepQuality.setText("测试");
-            tvAvgDuration.setText("测试");
-            tvRegularityScore.setText("测试");
-            tvLastSleepTime.setText("测试");
-            tvLastWakeTime.setText("测试");
-            tvLastDuration.setText("测试");
-            tvLastQuality.setText("测试");
-            progressSleepQuality.setProgress(50);
-            
-            android.util.Log.d("SleepAdviceFragment", "UI测试成功");
-            
-            // 清空测试数据
-            tvSleepScore.setText("--");
-            tvSleepQuality.setText("加载中...");
-            tvAvgDuration.setText("--");
-            tvRegularityScore.setText("--");
-            tvLastSleepTime.setText("--:--");
-            tvLastWakeTime.setText("--:--");
-            tvLastDuration.setText("--");
-            tvLastQuality.setText("--");
-            progressSleepQuality.setProgress(0);
-            
-        } catch (Exception e) {
-            android.util.Log.e("SleepAdviceFragment", "UI测试失败", e);
-        }
-    }
-    
-
     
     // 实现View接口方法
     @Override
