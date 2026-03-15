@@ -15,7 +15,6 @@ import com.example.smart_wearable_warning_platform.model.User;
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText etStudentId, etName, etPassword, etConfirmPassword;
-    private RadioButton rbStudent, rbAdmin;
     private Button btnRegister, btnBackToLogin;
     private DataManager dataManager;
 
@@ -30,26 +29,8 @@ public class RegisterActivity extends AppCompatActivity {
         etName = findViewById(R.id.et_reg_name);
         etPassword = findViewById(R.id.et_reg_password);
         etConfirmPassword = findViewById(R.id.et_reg_confirm_password);
-        rbStudent = findViewById(R.id.rb_reg_student);
-        rbAdmin = findViewById(R.id.rb_reg_admin);
         btnRegister = findViewById(R.id.btn_register);
         btnBackToLogin = findViewById(R.id.btn_back_to_login);
-
-        // 默认选中学生
-        rbStudent.setChecked(true);
-
-        // 监听角色选择，隐藏/显示姓名输入框
-        rbStudent.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                etName.setVisibility(View.VISIBLE);
-            }
-        });
-        
-        rbAdmin.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                etName.setVisibility(View.GONE);
-            }
-        });
 
         btnRegister.setOnClickListener(v -> handleRegister());
 
@@ -63,7 +44,7 @@ public class RegisterActivity extends AppCompatActivity {
         String name = etName.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
-        String role = rbStudent.isChecked() ? "Student" : "Admin";
+        String role = "Student";
 
         // 1. 基础校验
         if (studentId.isEmpty() || password.isEmpty()) {
@@ -72,7 +53,7 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         // 2. 学生需要输入姓名
-        if ("Student".equals(role) && name.isEmpty()) {
+        if (name.isEmpty()) {
             Toast.makeText(this, "请输入姓名", Toast.LENGTH_SHORT).show();
             return;
         }

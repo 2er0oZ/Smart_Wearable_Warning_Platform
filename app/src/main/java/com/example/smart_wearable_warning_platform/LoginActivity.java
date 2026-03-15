@@ -44,6 +44,19 @@ public class LoginActivity extends AppCompatActivity {
 
         btnLogin.setOnClickListener(v -> handleLogin());
 
+        // 为RadioButton添加监听器，动态修改输入框提示
+        rbStudent.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                etStudentId.setHint("学号");
+            }
+        });
+
+        rbAdmin.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                etStudentId.setHint("账号");
+            }
+        });
+
         // 新增：点击跳转到注册页
         tvGoToRegister.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
