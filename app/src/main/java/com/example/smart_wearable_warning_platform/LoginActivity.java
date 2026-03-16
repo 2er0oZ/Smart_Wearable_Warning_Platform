@@ -96,8 +96,12 @@ public class LoginActivity extends AppCompatActivity {
                 navigateToHome(user);
             }
         } else {
-            // 登录失败：提示学号或密码错误
-            Toast.makeText(this, "学号不存在或密码错误", Toast.LENGTH_SHORT).show();
+            // 登录失败：根据角色显示不同的提示信息
+            if ("Admin".equals(role)) {
+                Toast.makeText(this, "账号不存在或密码错误", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "学号不存在或密码错误", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
