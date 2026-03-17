@@ -216,6 +216,8 @@ public class DataManager {
         List<HeartRateEntry> rawData = new ArrayList<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         String line;
+        int errorCount = 0;
+        int successCount = 0;
 
         boolean isFirstLine = true;
         while ((line = reader.readLine()) != null) {
@@ -228,28 +230,60 @@ public class DataManager {
             if (parts.length >= 3) {
                 try {
                     String timestamp = parts[1]; // 取日期时间作为X轴
-                    int bpm = Integer.parseInt(parts[2].trim());
+                    int bpm = 0;
                     int stepFreq = 0;
-                    if (parts.length >= 4) {
+                    
+                    // 检查第3列是否有"bpm"后缀
+                    String col3 = parts[2].trim().toLowerCase();
+                    if (col3.endsWith("bpm")) {
+                        // 第3列是心率值（带bpm后缀）
                         try {
-                            stepFreq = Integer.parseInt(parts[3].trim());
-                        } catch (NumberFormatException ignored) {
-                            // 如果步频不是数字，保持为0
+                            bpm = Integer.parseInt(col3.substring(0, col3.length() - 3).trim());
+                        } catch (NumberFormatException e) {
+                            android.util.Log.e("DataManager", "无法解析心率值: " + parts[2] + ", 行内容: " + line);
+                            errorCount++;
+                            continue;
                         }
+                        
+                        // 检查第4列是否存在
+                        if (parts.length >= 4) {
+                            try {
+                                stepFreq = Integer.parseInt(parts[3].trim());
+                            } catch (NumberFormatException ignored) {
+                                // 如果步频不是数字，保持为0
+                            }
+                        } else {
+                            // 缺少步频列
+                            android.util.Log.w("DataManager", "CSV缺少步频列: " + line);
+                        }
+                    } else {
+                        // 第3列不是心率值（没有"bpm"后缀）
+                        // 可能是步频，说明缺少心率列
+                        android.util.Log.e("DataManager", "CSV格式错误，第3列缺少'bpm'后缀，可能缺少心率列: " + line);
+                        errorCount++;
+                        continue;
                     }
+                    
                     if (stepFreq < 0) {
                         stepFreq = 0; // 步频不允许为负
                     }
 
                     HeartRateEntry entry = new HeartRateEntry(timestamp, bpm, stepFreq);
                     rawData.add(entry);
+                    successCount++;
 
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
+                } catch (Exception e) {
+                    android.util.Log.e("DataManager", "解析CSV行失败: " + line + ", 错误: " + e.getMessage());
+                    errorCount++;
                 }
+            } else {
+                android.util.Log.e("DataManager", "CSV格式错误，列数不足: " + line);
+                errorCount++;
             }
         }
         reader.close();
+        
+        android.util.Log.d("DataManager", "CSV解析完成: 成功" + successCount + "条, 失败" + errorCount + "条");
         
         // 按分钟聚合数据，取平均值
         List<HeartRateEntry> averagedData = aggregateDataByMinute(rawData);

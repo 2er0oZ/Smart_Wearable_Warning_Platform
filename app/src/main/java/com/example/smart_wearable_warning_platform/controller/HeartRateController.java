@@ -152,7 +152,7 @@ public class HeartRateController {
             inputStream.close();
 
             if (data.isEmpty()) {
-                view.showErrorMessage("CSV文件为空或格式错误");
+                view.showErrorMessage("CSV文件为空或格式错误\n\n请检查CSV文件格式：\n1. 正确格式：时间戳,日期时间,心率值,步频\n   示例：1772353800.0,2026-03-01 08:30:00,62bpm,0\n2. 心率值必须带'bpm'后缀\n3. 请查看Logcat日志了解具体错误");
                 return;
             }
 
