@@ -90,9 +90,13 @@ public class SleepAnalysisService {
                 
                 Date sleepTime = parsedDates.get(sleepIndex);
                 
-                // 从入睡时间开始，寻找起床时间
+                                // 从入睡时间开始，寻找起床时间
                 int wakeIndex = -1;
                 int searchWakeEnd = Math.min(sleepIndex + 720, sortedData.size()); // 最多12小时
+                
+                // 检测步频变化：从平稳的0变为有起伏
+                int consecutiveStepIncrease = 0;
+                int consecutiveHeartRateIncrease = 0;
                 
                 for (int j = sleepIndex + 1; j < searchWakeEnd; j++) {
                     if (parsedDates.get(j) == null) continue;
@@ -101,13 +105,45 @@ public class SleepAnalysisService {
                     wakeCal.setTime(parsedDates.get(j));
                     int wakeHour = wakeCal.get(Calendar.HOUR_OF_DAY);
                     
-                    // 检查是否在起床时间附近
+                    // 检查是否在起床时间附近（睡眠结束时间后4小时内）
                     boolean isInWakeRange = (wakeHour >= sleepEndHour) || 
                                           (wakeHour == sleepEndHour && wakeCal.get(Calendar.MINUTE) >= 0);
                     
-                    // 如果步频增加且心率上升，认为是起床时间
-                    if (isInWakeRange && sortedData.get(j).getStepFrequency() > 5) {
-                        if (j > 0 && sortedData.get(j).getBpm() > sortedData.get(j - 1).getBpm() * 1.1) {
+                    if (!isInWakeRange) {
+                        // 不在起床时间范围内，重置计数器
+                        consecutiveStepIncrease = 0;
+                        consecutiveHeartRateIncrease = 0;
+                        continue;
+                    }
+                    
+                    // 检测步频变化：从0变为有起伏（步频 > 0）
+                    boolean stepFrequencyChanged = sortedData.get(j).getStepFrequency() > 0;
+                    if (stepFrequencyChanged) {
+                        consecutiveStepIncrease++;
+                    } else {
+                        consecutiveStepIncrease = 0;
+                    }
+                    
+                    // 检测心率变化：心率上升（增加超过5%）
+                    boolean heartRateIncreased = false;
+                    if (j > 0) {
+                        heartRateIncreased = sortedData.get(j).getBpm() > sortedData.get(j - 1).getBpm() * 1.05;
+                    }
+                    if (heartRateIncreased) {
+                        consecutiveHeartRateIncrease++;
+                    } else {
+                        consecutiveHeartRateIncrease = 0;
+                    }
+                    
+                    // 如果连续3个数据点都出现步频变化和心率上升，认为是起床时间
+                    if (consecutiveStepIncrease >= 3 && consecutiveHeartRateIncrease >= 3) {
+                        wakeIndex = j - 2; // 返回第一个变化的数据点
+                        break;
+                    }
+                    
+                    // 备用方案：如果步频 > 1 且心率上升超过5%，认为是起床时间
+                    if (sortedData.get(j).getStepFrequency() > 1) {
+                        if (j > 0 && sortedData.get(j).getBpm() > sortedData.get(j - 1).getBpm() * 1.05) {
                             wakeIndex = j;
                             break;
                         }
