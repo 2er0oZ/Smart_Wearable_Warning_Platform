@@ -22,6 +22,8 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
         public String studentId; // 学生学号
         public List<HealthAlert> alerts = new ArrayList<>();
         public boolean expanded = false;
+        public int currentCount = 10; // 当前显示的预警数量，初始值为10
+        public int pageSize = 10; // 每次加载更多时显示的预警数量
     }
 
     private List<Group> groups;
@@ -50,7 +52,13 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
             // 先清空已有，然后填充
             holder.layoutDetails.removeAllViews();
             LayoutInflater inflater = LayoutInflater.from(holder.itemView.getContext());
-            for (HealthAlert a : g.alerts) {
+            
+            // 计算当前显示的结束索引
+            int endIndex = Math.min(g.currentCount, g.alerts.size());
+            
+            // 显示从0到currentCount的所有预警信息
+            for (int i = 0; i < endIndex; i++) {
+                HealthAlert a = g.alerts.get(i);
                 View detail = inflater.inflate(R.layout.alert_detail_item, holder.layoutDetails, false);
                 TextView tvMsg = detail.findViewById(R.id.tv_detail_message);
                 TextView tvTime = detail.findViewById(R.id.tv_detail_time);
@@ -58,6 +66,21 @@ public class GroupedAlertAdapter extends RecyclerView.Adapter<GroupedAlertAdapte
                 tvMsg.setText(a.getMessage());
                 tvTime.setText(a.getTimestamp());
                 holder.layoutDetails.addView(detail);
+            }
+            
+            // 如果还有更多数据，显示加载更多按钮
+            if (g.currentCount < g.alerts.size()) {
+                View loadMoreView = inflater.inflate(R.layout.alert_detail_item, holder.layoutDetails, false);
+                TextView tvMsg = loadMoreView.findViewById(R.id.tv_detail_message);
+                TextView tvTime = loadMoreView.findViewById(R.id.tv_detail_time);
+                tvMsg.setText("加载更多...");
+                tvTime.setText((g.alerts.size() - g.currentCount) + "条剩余");
+                tvMsg.setTextColor(0xFF2196F3); // 蓝色
+                loadMoreView.setOnClickListener(v -> {
+                    g.currentCount += g.pageSize;
+                    notifyItemChanged(position);
+                });
+                holder.layoutDetails.addView(loadMoreView);
             }
         } else {
             holder.layoutDetails.setVisibility(View.GONE);
