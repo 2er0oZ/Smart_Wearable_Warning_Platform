@@ -2,3 +2,9 @@
 分析心率、步数等数据，识别长期熬夜或运动不足人群，推送健康建议。  
 
 需搭配[Bluetooth device monitoring](https://github.com/2er0oZ/Bluetooth-device-monitoring)进行使用
+<<<<<<< HEAD
+=======
+
+
+项目暂时只有前端，数据处理后续可能会放到后端。
+>>>>>>> d0333fa4d8ce713430f293af23faebac5720dfb9
