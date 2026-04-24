@@ -205,11 +205,7 @@ public class SleepAdviceController {
         android.util.Log.d("SleepAdviceController", "刷新睡眠数据");
         
         // 清除缓存
-        isDataLoaded = false;
-        cachedSleepDataList = null;
-        cachedOverallScore = 0;
-        cachedLastSleepData = null;
-        cachedAdviceList = null;
+        clearCache();
         
         // 重新加载数据
         loadSleepData();
