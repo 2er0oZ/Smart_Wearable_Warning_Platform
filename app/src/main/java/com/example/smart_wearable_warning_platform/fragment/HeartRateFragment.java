@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import com.example.smart_wearable_warning_platform.LoginActivity;
 import com.example.smart_wearable_warning_platform.R;
 import com.example.smart_wearable_warning_platform.CustomMarkerView;
+import com.example.smart_wearable_warning_platform.controller.SleepAdviceController;
 import com.example.smart_wearable_warning_platform.model.DataManager;
 import com.example.smart_wearable_warning_platform.model.HeartRateEntry;
 import com.example.smart_wearable_warning_platform.model.User;
@@ -154,6 +155,8 @@ public class HeartRateFragment extends Fragment {
                 dataManager.saveHeartRateData(currentUser.getUsername(), data);
                 // 使用原始新条目生成预警
                 dataManager.checkAndGenerateAlerts(currentUser.getUsername(), data);
+                // 刷新睡眠建议数据
+                SleepAdviceController.getInstance(requireContext()).refreshSleepData();
                 Toast.makeText(requireContext(), "数据已保存，预警检测完成", Toast.LENGTH_SHORT).show();
                 // 将合并后的全量数据加载到图表
                 allData = dataManager.getHeartRateData(currentUser.getUsername());

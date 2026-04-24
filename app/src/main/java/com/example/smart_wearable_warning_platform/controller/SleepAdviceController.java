@@ -44,12 +44,13 @@ public class SleepAdviceController {
     private ExecutorService executorService;
     private Handler mainHandler;
     
-    // 数据缓存
+    // 数据缓存（按用户隔离）
     private List<SleepData> cachedSleepDataList;
     private int cachedOverallScore;
     private SleepData cachedLastSleepData;
     private List<SleepAdvice> cachedAdviceList;
     private boolean isDataLoaded = false;
+    private String cachedUsername = null; // 记录缓存对应的用户名
     
     // 单例实例
     private static SleepAdviceController instance;
@@ -72,6 +73,18 @@ public class SleepAdviceController {
     }
     
     /**
+     * 清除缓存（切换用户时调用）
+     */
+    private void clearCache() {
+        isDataLoaded = false;
+        cachedSleepDataList = null;
+        cachedOverallScore = 0;
+        cachedLastSleepData = null;
+        cachedAdviceList = null;
+        cachedUsername = null;
+    }
+    
+    /**
      * 设置视图
      */
     public void setView(View view) {
@@ -84,8 +97,18 @@ public class SleepAdviceController {
     public void loadSleepData() {
         android.util.Log.d("SleepAdviceController", "开始加载睡眠数据");
         
-        // 如果数据已加载，直接使用缓存
-        if (isDataLoaded && cachedSleepDataList != null) {
+        User currentUser = dataManager.getCurrentUser();
+        if (currentUser == null) {
+            android.util.Log.e("SleepAdviceController", "用户信息获取失败");
+            if (view != null) {
+                mainHandler.post(() -> view.showErrorMessage("用户信息获取失败"));
+            }
+            return;
+        }
+        
+        // 检查缓存是否属于当前用户
+        if (isDataLoaded && cachedSleepDataList != null && cachedUsername != null 
+                && cachedUsername.equals(currentUser.getUsername())) {
             android.util.Log.d("SleepAdviceController", "使用缓存数据，跳过加载");
             mainHandler.post(() -> {
                 view.updateSleepScoreUI(cachedOverallScore);
@@ -96,16 +119,15 @@ public class SleepAdviceController {
             return;
         }
         
+        // 用户不匹配，清除旧缓存
+        if (cachedUsername != null && !cachedUsername.equals(currentUser.getUsername())) {
+            android.util.Log.d("SleepAdviceController", "用户切换，清除旧缓存: " + cachedUsername + " -> " + currentUser.getUsername());
+            clearCache();
+        }
+        
         executorService.execute(() -> {
             try {
                 android.util.Log.d("SleepAdviceController", "异步任务开始执行");
-                
-                User currentUser = dataManager.getCurrentUser();
-                if (currentUser == null) {
-                    android.util.Log.e("SleepAdviceController", "用户信息获取失败");
-                    mainHandler.post(() -> view.showErrorMessage("用户信息获取失败"));
-                    return;
-                }
                 
                 android.util.Log.d("SleepAdviceController", "当前用户: " + currentUser.getUsername());
                 
@@ -150,13 +172,15 @@ public class SleepAdviceController {
                 List<SleepAdvice> adviceList = sleepAnalysisService.generateSleepAdvice(sleepDataList, overallScore);
                 android.util.Log.d("SleepAdviceController", "生成的建议数量: " + adviceList.size());
                 
-                // 缓存数据
+                // 缓存数据（关联当前用户）
                 cachedSleepDataList = sleepDataList;
                 cachedOverallScore = overallScore;
                 cachedLastSleepData = lastCompleteSleepData;
                 cachedAdviceList = adviceList;
+                cachedUsername = currentUser.getUsername();
                 isDataLoaded = true;
-                android.util.Log.d("SleepAdviceController", "数据已缓存");
+                android.util.Log.d("SleepAdviceController", "数据已缓存，用户: " + cachedUsername);
+
                 
                 // 在主线程更新UI
                 mainHandler.post(() -> {
